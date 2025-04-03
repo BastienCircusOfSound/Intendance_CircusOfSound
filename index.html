@@ -59,7 +59,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
                         <label>Produit:</label>
                         <select name="produit" class="produit-select">
                             <option value="">Sélectionnez un produit</option>
-                            ${produits.map(p => `<option value="${p.id}">${p.nom} (${p.unite})</option>`).join('')}
+                            ${produits.map(p => `<option value="${p.id}">${p.} (${p.unite})</option>`).join('')}
                         </select>
                     </div>
                     <div>
@@ -155,7 +155,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
             commande.produits.forEach(p => {
                 const produit = produits.find(prod => prod.id === p.produit);
                 if (produit) {
-                    produitsHtml += `<li>${produit.Nom} (${produit.Unité}) - Quantité: ${p.quantite}</li>`;
+                    produitsHtml += `<li>${produit.} (${produit.Unité}) - Quantité: ${p.quantite}</li>`;
                 }
             });
             produitsHtml += '</ul>';
@@ -246,7 +246,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
             livraison.produits.forEach(p => {
                 const produit = produits.find(prod => prod.id === p.produit);
                 if (produit) {
-                    produitsHtml += `<li>${produit.Nom} (${produit.Unité}) - Quantité: ${p.quantite}</li>`;
+                    produitsHtml += `<li>${produit.} (${produit.Unité}) - Quantité: ${p.quantite}</li>`;
                 }
             });
             produitsHtml += '</ul>';
@@ -281,7 +281,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
                         <label>Produit:</label>
                         <select name="produit" class="produit-select">
                             <option value="">Sélectionnez un produit</option>
-                            ${produits.map(p => `<option value="${p.id}">${p.nom} (${p.unite})</option>`).join('')}
+                            ${produits.map(p => `<option value="${p.id}">${p.} (${p.unite})</option>`).join('')}
                         </select>
                     </div>
                     <div>
@@ -404,7 +404,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
             retour.produits.forEach(p => {
                 const produit = produits.find(prod => prod.id === p.produit);
                 if (produit) {
-                    produitsHtml += `<li>${produit.Nom} (${produit.Unité}) - Quantité: ${p.quantite} - Raison: ${getRaisonRetour(p.raison)}</li>`;
+                    produitsHtml += `<li>${produit.} (${produit.Unité}) - Quantité: ${p.quantite} - Raison: ${getRaisonRetour(p.raison)}</li>`;
                 }
             });
             produitsHtml += '</ul>';
@@ -502,7 +502,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
                     const details = detailsProduits[produitId];
                     html += `
                     <tr>
-                        <td>${produit.Nom} (${produit.Unité})</td>
+                        <td>${produit.} (${produit.Unité})</td>
                         <td>${details['bar-principal']}</td>
                         <td>${details['bar-terrasse']}</td>
                         <td>${details['bar-vip']}</td>
@@ -635,7 +635,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
             }
             
             if (search) {
-                produitsFiltres = produitsFiltres.filter(p => p.nom.toLowerCase().includes(search));
+                produitsFiltres = produitsFiltres.filter(p => p..toLowerCase().includes(search));
             }
             
             const stockTbody = document.getElementById('stock-tbody');
@@ -650,7 +650,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
                 const total = produit.Stock_Réserve + produit.Stock_BarOne + produit.Stock_BarTwo + produit.Stock_BarThree;
                 html += `
                 <tr>
-                    <td>${produit.Nom}</td>
+                    <td>${produit.}</td>
                     <td>${getCategoryName(produit.Catégorie)}</td>
                     <td>${produit.Unité}</td>
                     <td>${produit.Stock_Réserve}</td>
@@ -704,7 +704,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
                 commande.produits.forEach(p => {
                     const produit = produits.find(prod => prod.id === p.produit);
                     if (produit) {
-                        produitsList += `${produit.Nom} (x${p.quantite}), `;
+                        produitsList += `${produit.} (x${p.quantite}), `;
                     }
                 });
                 produitsList = produitsList.slice(0, -2);
