@@ -1,13 +1,13 @@
 document.getElementById('product-form-title').textContent = 'Modifier un produit';
             document.getElementById('product-id').value = productId;
-            document.getElementById('product-name').value = produit.nom;
-            document.getElementById('product-category').value = produit.categorie;
-            document.getElementById('product-unit').value = produit.unite;
-            document.getElementById('product-reserve').value = produit.stockReserve;
-            document.getElementById('product-bar-principal').value = produit.stockBarPrincipal;
-            document.getElementById('product-bar-terrasse').value = produit.stockBarTerrasse;
-            document.getElementById('product-bar-vip').value = produit.stockBarVIP;
-            document.getElementById('product-seuil').value = produit.seuilAlerte;
+            document.getElementById('product-name').value = produit.Nom;
+            document.getElementById('product-category').value = produit.Catégorie;
+            document.getElementById('product-unit').value = produit.Unité;
+            document.getElementById('product-reserve').value = produit.Stock_Réserve;
+            document.getElementById('product-bar-principal').value = produit.Stock_BarOne;
+            document.getElementById('product-bar-terrasse').value = produit.Stock_BarTwo;
+            document.getElementById('product-bar-vip').value = produit.Stock_BarThree;
+            document.getElementById('product-seuil').value = produit.Seuil_Alerte;
             document.getElementById('product-form').style.display = 'block';
         }
         
@@ -16,14 +16,14 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
             const isNew = !productId;
             
             const produit = {
-                nom: document.getElementById('product-name').value,
-                categorie: document.getElementById('product-category').value,
-                unite: document.getElementById('product-unit').value,
-                stockReserve: parseInt(document.getElementById('product-reserve').value),
-                stockBarPrincipal: parseInt(document.getElementById('product-bar-principal').value),
-                stockBarTerrasse: parseInt(document.getElementById('product-bar-terrasse').value),
-                stockBarVIP: parseInt(document.getElementById('product-bar-vip').value),
-                seuilAlerte: parseInt(document.getElementById('product-seuil').value)
+                Nom: document.getElementById('product-name').value,
+                Catégorie: document.getElementById('product-category').value,
+                Unité: document.getElementById('product-unit').value,
+                Stock_Réserve: parseInt(document.getElementById('product-reserve').value),
+                Stock_BarOne: parseInt(document.getElementById('product-bar-principal').value),
+                Stock_BarTwo: parseInt(document.getElementById('product-bar-terrasse').value),
+                Stock_BarThree: parseInt(document.getElementById('product-bar-vip').value),
+                Seuil_Alerte: parseInt(document.getElementById('product-seuil').value)
             };
             
             try {
@@ -155,7 +155,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
             commande.produits.forEach(p => {
                 const produit = produits.find(prod => prod.id === p.produit);
                 if (produit) {
-                    produitsHtml += `<li>${produit.nom} (${produit.unite}) - Quantité: ${p.quantite}</li>`;
+                    produitsHtml += `<li>${produit.Nom} (${produit.Unité}) - Quantité: ${p.quantite}</li>`;
                 }
             });
             produitsHtml += '</ul>';
@@ -211,18 +211,18 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
                             const produitRef = window.firestore.doc(window.db, "produits", p.produit);
                             
                             // Soustraire de la réserve
-                            const update = { stockReserve: produit.stockReserve - p.quantite };
+                            const update = { Stock_Réserve: produit.Stock_Réserve - p.quantite };
                             
                             // Ajouter au bar approprié
                             switch(commande.bar) {
                                 case 'bar-principal':
-                                    update.stockBarPrincipal = produit.stockBarPrincipal + p.quantite;
+                                    update.stockBarPrincipal = produit.Stock_BarOne + p.quantite;
                                     break;
                                 case 'bar-terrasse':
-                                    update.stockBarTerrasse = produit.stockBarTerrasse + p.quantite;
+                                    update.stockBarTerrasse = produit.Stock_BarTwo + p.quantite;
                                     break;
                                 case 'bar-vip':
-                                    update.stockBarVIP = produit.stockBarVIP + p.quantite;
+                                    update.stockBarVIP = produit.Stock_BarThree + p.quantite;
                                     break;
                             }
                             
@@ -246,7 +246,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
             livraison.produits.forEach(p => {
                 const produit = produits.find(prod => prod.id === p.produit);
                 if (produit) {
-                    produitsHtml += `<li>${produit.nom} (${produit.unite}) - Quantité: ${p.quantite}</li>`;
+                    produitsHtml += `<li>${produit.Nom} (${produit.Unité}) - Quantité: ${p.quantite}</li>`;
                 }
             });
             produitsHtml += '</ul>';
@@ -357,19 +357,19 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
                         // Ajouter à la réserve si le produit est en bon état
                         const update = {};
                         if (p.raison === 'non-ouvert' || p.raison === 'erreur') {
-                            update.stockReserve = produit.stockReserve + p.quantite;
+                            update.stockReserve = produit.Stock_Réserve + p.quantite;
                         }
                         
                         // Soustraire du bar approprié
                         switch(bar) {
                             case 'bar-principal':
-                                update.stockBarPrincipal = Math.max(0, produit.stockBarPrincipal - p.quantite);
+                                update.stockBarPrincipal = Math.max(0, produit.Stock_BarOne - p.quantite);
                                 break;
                             case 'bar-terrasse':
-                                update.stockBarTerrasse = Math.max(0, produit.stockBarTerrasse - p.quantite);
+                                update.stockBarTerrasse = Math.max(0, produit.Stock_BarTwo - p.quantite);
                                 break;
                             case 'bar-vip':
-                                update.stockBarVIP = Math.max(0, produit.stockBarVIP - p.quantite);
+                                update.stockBarVIP = Math.max(0, produit.Stock_BarThree - p.quantite);
                                 break;
                         }
                         
@@ -404,7 +404,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
             retour.produits.forEach(p => {
                 const produit = produits.find(prod => prod.id === p.produit);
                 if (produit) {
-                    produitsHtml += `<li>${produit.nom} (${produit.unite}) - Quantité: ${p.quantite} - Raison: ${getRaisonRetour(p.raison)}</li>`;
+                    produitsHtml += `<li>${produit.Nom} (${produit.Unité}) - Quantité: ${p.quantite} - Raison: ${getRaisonRetour(p.raison)}</li>`;
                 }
             });
             produitsHtml += '</ul>';
@@ -502,7 +502,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
                     const details = detailsProduits[produitId];
                     html += `
                     <tr>
-                        <td>${produit.nom} (${produit.unite})</td>
+                        <td>${produit.Nom} (${produit.Unité})</td>
                         <td>${details['bar-principal']}</td>
                         <td>${details['bar-terrasse']}</td>
                         <td>${details['bar-vip']}</td>
@@ -647,16 +647,16 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
             
             let html = '';
             produitsFiltres.forEach(produit => {
-                const total = produit.stockReserve + produit.stockBarPrincipal + produit.stockBarTerrasse + produit.stockBarVIP;
+                const total = produit.Stock_Réserve + produit.Stock_BarOne + produit.Stock_BarTwo + produit.Stock_BarThree;
                 html += `
                 <tr>
-                    <td>${produit.nom}</td>
-                    <td>${getCategoryName(produit.categorie)}</td>
-                    <td>${produit.unite}</td>
-                    <td>${produit.stockReserve}</td>
-                    <td>${produit.stockBarPrincipal}</td>
-                    <td>${produit.stockBarTerrasse}</td>
-                    <td>${produit.stockBarVIP}</td>
+                    <td>${produit.Nom}</td>
+                    <td>${getCategoryName(produit.Catégorie)}</td>
+                    <td>${produit.Unité}</td>
+                    <td>${produit.Stock_Réserve}</td>
+                    <td>${produit.Stock_BarOne}</td>
+                    <td>${produit.Stock_BarTwo}</td>
+                    <td>${produit.Stock_BarThree}</td>
                     <td>${total}</td>
                     <td>
                         <button class="btn btn-primary" onclick="editProduct('${produit.id}')">Ajuster</button>
@@ -704,7 +704,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
                 commande.produits.forEach(p => {
                     const produit = produits.find(prod => prod.id === p.produit);
                     if (produit) {
-                        produitsList += `${produit.nom} (x${p.quantite}), `;
+                        produitsList += `${produit.Nom} (x${p.quantite}), `;
                     }
                 });
                 produitsList = produitsList.slice(0, -2);
@@ -778,7 +778,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
                 livraison.produits.forEach(p => {
                     const produit = produits.find(prod => prod.id === p.produit);
                     if (produit) {
-                        produitsList += `<li>${p.quantite}x ${produit.nom} (${produit.unite})</li>`;
+                        produitsList += `<li>${p.quantite}x ${produit.Nom} (${produit.Unité})</li>`;
                     }
                 });
                 produitsList += '</ul>';
@@ -831,7 +831,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
                 retour.produits.forEach(p => {
                     const produit = produits.find(prod => prod.id === p.produit);
                     if (produit) {
-                        produitsList += `<li>${p.quantite}x ${produit.nom} - ${getRaisonRetour(p.raison)}</li>`;
+                        produitsList += `<li>${p.quantite}x ${produit.Nom} - ${getRaisonRetour(p.raison)}</li>`;
                     }
                 });
                 produitsList += '</ul>';
@@ -2003,16 +2003,16 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
             
             let html = '';
             produits.forEach(produit => {
-                const total = produit.stockReserve + produit.stockBarPrincipal + produit.stockBarTerrasse + produit.stockBarVIP;
+                const total = produit.Stock_Réserve + produit.Stock_BarOne + produit.Stock_BarTwo + produit.Stock_BarThree;
                 html += `
                 <tr>
-                    <td>${produit.nom}</td>
-                    <td>${getCategoryName(produit.categorie)}</td>
-                    <td>${produit.unite}</td>
-                    <td>${produit.stockReserve}</td>
-                    <td>${produit.stockBarPrincipal}</td>
-                    <td>${produit.stockBarTerrasse}</td>
-                    <td>${produit.stockBarVIP}</td>
+                    <td>${produit.Nom}</td>
+                    <td>${getCategoryName(produit.Catégorie)}</td>
+                    <td>${produit.Unité}</td>
+                    <td>${produit.Stock_Réserve}</td>
+                    <td>${produit.Stock_BarOne}</td>
+                    <td>${produit.Stock_BarTwo}</td>
+                    <td>${produit.Stock_BarThree}</td>
                     <td>${total}</td>
                     <td>
                         <button class="btn btn-primary" onclick="editProduct('${produit.id}')">Ajuster</button>
@@ -2032,7 +2032,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
                 produits.forEach(produit => {
                     const option = document.createElement('option');
                     option.value = produit.id;
-                    option.textContent = `${produit.nom} (${produit.unite})`;
+                    option.textContent = `${produit.Nom} (${produit.Unité})`;
                     select.appendChild(option);
                 });
                 
@@ -2048,8 +2048,8 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
             if (!alertesTbody) return;
             
             const produitsEnAlerte = produits.filter(produit => {
-                const total = produit.stockReserve + produit.stockBarPrincipal + produit.stockBarTerrasse + produit.stockBarVIP;
-                return total <= produit.seuilAlerte;
+                const total = produit.Stock_Réserve + produit.Stock_BarOne + produit.Stock_BarTwo + produit.Stock_BarThree;
+                return total <= produit.Seuil_Alerte;
             });
             
             if (produitsEnAlerte.length === 0) {
@@ -2059,15 +2059,15 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
             
             let html = '';
             produitsEnAlerte.forEach(produit => {
-                const total = produit.stockReserve + produit.stockBarPrincipal + produit.stockBarTerrasse + produit.stockBarVIP;
-                const statutClass = total <= produit.seuilAlerte / 2 ? 'badge-danger' : 'badge-warning';
-                const statutText = total <= produit.seuilAlerte / 2 ? 'CRITIQUE' : 'NIVEAU BAS';
+                const total = produit.Stock_Réserve + produit.Stock_BarOne + produit.Stock_BarTwo + produit.Stock_BarThree;
+                const statutClass = total <= produit.Seuil_Alerte / 2 ? 'badge-danger' : 'badge-warning';
+                const statutText = total <= produit.Seuil_Alerte / 2 ? 'CRITIQUE' : 'NIVEAU BAS';
                 
                 html += `
                 <tr>
-                    <td>${produit.nom} (${produit.unite})</td>
+                    <td>${produit.Nom} (${produit.Unité})</td>
                     <td>${total}</td>
-                    <td>${produit.seuilAlerte}</td>
+                    <td>${produit.Seuil_Alerte}</td>
                     <td><span class="badge ${statutClass}">${statutText}</span></td>
                     <td><button class="btn btn-primary" onclick="commanderProduit('${produit.id}')">Commander</button></td>
                 </tr>
@@ -2103,7 +2103,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
                 commande.produits.forEach(p => {
                     const produit = produits.find(prod => prod.id === p.produit);
                     if (produit) {
-                        produitsList += `${produit.nom} (x${p.quantite}), `;
+                        produitsList += `${produit.Nom} (x${p.quantite}), `;
                     }
                 });
                 produitsList = produitsList.slice(0, -2);
@@ -2168,7 +2168,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
                 commande.produits.forEach(p => {
                     const produit = produits.find(prod => prod.id === p.produit);
                     if (produit) {
-                        produitsList += `<li>${p.quantite}x ${produit.nom} (${produit.unite})</li>`;
+                        produitsList += `<li>${p.quantite}x ${produit.Nom} (${produit.Unité})</li>`;
                     }
                 });
                 produitsList += '</ul>';
@@ -2209,7 +2209,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
                 livraison.produits.forEach(p => {
                     const produit = produits.find(prod => prod.id === p.produit);
                     if (produit) {
-                        produitsList += `<li>${p.quantite}x ${produit.nom} (${produit.unite})</li>`;
+                        produitsList += `<li>${p.quantite}x ${produit.Nom} (${produit.Unité})</li>`;
                     }
                 });
                 produitsList += '</ul>';
@@ -2251,7 +2251,7 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
                 retour.produits.forEach(p => {
                     const produit = produits.find(prod => prod.id === p.produit);
                     if (produit) {
-                        produitsList += `<li>${p.quantite}x ${produit.nom} - ${getRaisonRetour(p.raison)}</li>`;
+                        produitsList += `<li>${p.quantite}x ${produit.Nom} - ${getRaisonRetour(p.raison)}</li>`;
                     }
                 });
                 produitsList += '</ul>';
@@ -2311,8 +2311,8 @@ document.getElementById('product-form-title').textContent = 'Modifier un produit
             
             // Produits faibles en stock
             const produitsEnAlerte = produits.filter(produit => {
-                const total = produit.stockReserve + produit.stockBarPrincipal + produit.stockBarTerrasse + produit.stockBarVIP;
-                return total <= produit.seuilAlerte;
+                const total = produit.Stock_Réserve + produit.Stock_BarOne + produit.Stock_BarTwo + produit.Stock_BarThree;
+                return total <= produit.Seuil_Alerte;
             }).length;
             document.getElementById('stock-faible').textContent = produitsEnAlerte;
         }
