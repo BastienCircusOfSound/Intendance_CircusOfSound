@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GestionBar - Festival</title>
+    
+    <!-- Page de connexion -->
+    <style id="login-styles">
+        body.login-page {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #3498db;
+            background-image: linear-gradient(135deg, #3498db, #2c3e50);
+            margin: 0;
+            padding: 0;
+        }
+        
+        .login-container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .login-logo {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 1.5rem;
+        }
+        
+        .login-form .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .login-form label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .login-form input, .login-form select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        .login-form button {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .login-form button:hover {
+            background-color: #2980b9;
+        }
+        
+        .login-error {
+            color: #e74c3c;
+            text-align: center;
+            margin-top: 1rem;
+            font-weight: 500;
+            display: none;
+        }
+    </style>
+    
+    <!-- Styles pour l'application principale -->
+    <style>
+        :root {
+            --primary: #3498db;
+            --secondary: #2c3e50;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --light: #ecf0f1;
+            --dark: #34495e;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+        
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .tab-container {
+            margin-top: 2rem;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 1rem;
+        }
+        
+        .tab {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            margin-right: 0.5rem;
+            border-radius: 5px 5px 0 0;
+        }
+        
+        .tab.active {
+            border-color: #ddd;
+            background-color: white;
+            color: var(--primary);
+            font-weight: bold;
+        }
+        
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0 0 5px 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: var(--light);
+            font-weight: bold;
+        }
+        
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .btn-warning {
+            background-color: var(--warning);
+            color: white;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 1.5rem;
+        }
+        
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: var(--secondary);
+        }
+        
+        .card-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .filter-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            align-items: center;
+        }
+        
+        .filter-bar select, .filter-bar input {
+            width: auto;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .badge-success {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .badge-warning {
+            background-color: var(--warning);
+            color: white;
+        }
+        
+        .badge-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin: 2rem 0;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .filter-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container" style="display:none;">
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo">GestionBar</div>
+                <div class="nav-links">
+                    <a href="#" onclick="showTab('dashboard')">Tableau de Bord</a>
+                    <a href="#" onclick="showTab('stock')">Stocks</a>
+                    <a href="#" onclick="showTab('commandes')">Commandes</a>
+                    <a href="#" onclick="showTab('livraisons')">Livraisons</a>
+                    <a href="#" onclick="showTab('retours')">Retours</a>
+                    <a href="#" onclick="showTab('rapports')">Rapports</a>
+                </div>
+                <div class="user-info" style="display:flex; align-items:center; margin-left:auto; color:white;">
+                    <span id="current-user" style="margin-right:5px; font-weight:bold;">Utilisateur</span>
+                    (<span id="current-role">Rôle</span>)
+                    <button onclick="logout()" style="margin-left:15px; background:none; border:1px solid white; color:white; padding:3px 8px; border-radius:3px; cursor:pointer;">Déconnexion</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+    
+    <main class="container">
+        <div class="tab-container">
+            <div class="tabs">
+                <div class="tab active" onclick="showTab('dashboard')">Tableau de Bord</div>
+                <div class="tab" onclick="showTab('stock')">Stocks</div>
+                <div class="tab" onclick="showTab('commandes')">Commandes</div>
+                <div class="tab" onclick="showTab('livraisons')">Livraisons</div>
+                <div class="tab" onclick="showTab('retours')">Retours</div>
+                <div class="tab" onclick="showTab('rapports')">Rapports</div>
+            </div>
+            
+            <!-- Tableau de Bord -->
+            <div class="tab-content active" id="dashboard">
+                <h2>Tableau de Bord</h2>
+                
+                <div class="grid">
+                    <div class="card">
+                        <div class="card-title">Total Boissons en Stock</div>
+                        <div class="card-value">1,856</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Commandes en Attente</div>
+                        <div class="card-value">7</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Livraisons Aujourd'hui</div>
+                        <div class="card-value">12</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Produits Faibles en Stock</div>
+                        <div class="card-value">3</div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <h3>Consommation par Bar (Jour 1)</h3>
+                    <div id="chart" style="height: 250px; background-color: #f5f7fa; display: flex; align-items: flex-end; justify-content: space-around; padding: 10px;">
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div style="width: 100px; background-color: var(--primary); height: 150px;"></div>
+                            <div style="margin-top: 10px;">Bar Principal</div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div style="width: 100px; background-color: var(--primary); height: 90px;"></div>
+                            <div style="margin-top: 10px;">Bar Terrasse</div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div style="width: 100px; background-color: var(--primary); height: 120px;"></div>
+                            <div style="margin-top: 10px;">Bar VIP</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3>Alertes de Stock</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Produit</th>
+                            <th>Quantité Restante</th>
+                            <th>Seuil Critique</th>
+                            <th>Statut</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Bière Blonde Pression (fût)</td>
+                            <td>2</td>
+                            <td>5</td>
+                            <td><span class="badge badge-warning">Niveau Bas</span></td>
+                            <td><button class="btn btn-primary">Commander</button></td>
+                        </tr>
+                        <tr>
+                            <td>Vin Rosé (bouteille)</td>
+                            <td>5</td>
+                            <td>10</td>
+                            <td><span class="badge badge-warning">Niveau Bas</span></td>
+                            <td><button class="btn btn-primary">Commander</button></td>
+                        </tr>
+                        <tr>
+                            <td>Jus d'Orange (bouteille)</td>
+                            <td>1</td>
+                            <td>5</td>
+                            <td><span class="badge badge-danger">Critique</span></td>
+                            <td><button class="btn btn-primary">Commander</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Stocks -->
+            <div class="tab-content" id="stock">
+                <h2>Gestion des Stocks</h2>
+                
+                <div class="filter-bar">
+                    <div>
+                        <label>Catégorie:</label>
+                        <select>
+                            <option value="">Toutes</option>
+                            <option value="biere">Bière</option>
+                            <option value="vin">Vin</option>
+                            <option value="cocktail">Cocktail</option>
+                            <option value="soft">Soft / Sans Alcool</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Recherche:</label>
+                        <input type="text" placeholder="Nom du produit...">
+                    </div>
+                    <button class="btn btn-primary">Filtrer</button>
+                    <button class="btn btn-success">+ Ajouter un Produit</button>
+                </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Produit</th>
+                            <th>Catégorie</th>
+                            <th>Unité</th>
+                            <th>Stock Réserve</th>
+                            <th>Stock Bar Principal</th>
+                            <th>Stock Bar Terrasse</th>
+                            <th>Stock Bar VIP</th>
+                            <th>Total</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Bière Blonde Pression</td>
+                            <td>Bière</td>
+                            <td>Fût 30L</td>
+                            <td>2</td>
+                            <td>2</td>
+                            <td>1</td>
+                            <td>1</td>
+                            <td>6</td>
+                            <td>
+                                <button class="btn btn-primary">Ajuster</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Bière IPA</td>
+                            <td>Bière</td>
+                            <td>Fût 30L</td>
+                            <td>4</td>
+                            <td>1</td>
+                            <td>1</td>
+                            <td>1</td>
+                            <td>7</td>
+                            <td>
+                                <button class="btn btn-primary">Ajuster</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Vin Blanc</td>
+                            <td>Vin</td>
+                            <td>Bouteille 75cl</td>
+                            <td>12</td>
+                            <td>6</td>
+                            <td>3</td>
+                            <td>8</td>
+                            <td>29</td>
+                            <td>
+                                <button class="btn btn-primary">Ajuster</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Vin Rouge</td>
+                            <td>Vin</td>
+                            <td>Bouteille 75cl</td>
+                            <td>15</td>
+                            <td>5</td>
+                            <td>3</td>
+                            <td>6</td>
+                            <td>29</td>
+                            <td>
+                                <button class="btn btn-primary">Ajuster</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Vin Rosé</td>
+                            <td>Vin</td>
+                            <td>Bouteille 75cl</td>
+                            <td>5</td>
+                            <td>3</td>
+                            <td>2</td>
+                            <td>5</td>
+                            <td>15</td>
+                            <td>
+                                <button class="btn btn-primary">Ajuster</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Whisky Premium</td>
+                            <td>Spiritueux</td>
+                            <td>Bouteille 70cl</td>
+                            <td>8</td>
+                            <td>2</td>
+                            <td>1</td>
+                            <td>3</td>
+                            <td>14</td>
+                            <td>
+                                <button class="btn btn-primary">Ajuster</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Jus d'Orange</td>
+                            <td>Soft</td>
+                            <td>Bouteille 1L</td>
+                            <td>1</td>
+                            <td>2</td>
+                            <td>1</td>
+                            <td>2</td>
+                            <td>6</td>
+                            <td>
+                                <button class="btn btn-primary">Ajuster</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Commandes -->
+            <div class="tab-content" id="commandes">
+                <h2>Gestion des Commandes</h2>
+                
+                <div class="card">
+                    <form>
+                        <h3>Nouvelle Commande</h3>
+                        <div class="form-group">
+                            <label>Bar:</label>
+                            <select name="bar" required>
+                                <option value="">Sélectionnez un bar</option>
+                                <option value="bar-principal">Bar Principal</option>
+                                <option value="bar-terrasse">Bar Terrasse</option>
+                                <option value="bar-vip">Bar VIP</option>
+                            </select>
+                        </div>
+                        
+                        <div id="commande-produits">
+                            <div class="form-group">
+                                <h4>Produit 1</h4>
+                                <div style="display: grid; grid-template-columns: 3fr 1fr; gap: 1rem;">
+                                    <div>
+                                        <label>Produit:</label>
+                                        <select>
+                                            <option value="">Sélectionnez un produit</option>
+                                            <option value="biere-blonde">Bière Blonde Pression (fût)</option>
+                                            <option value="biere-ipa">Bière IPA (fût)</option>
+                                            <option value="vin-blanc">Vin Blanc (bouteille)</option>
+                                            <option value="vin-rouge">Vin Rouge (bouteille)</option>
+                                            <option value="vin-rose">Vin Rosé (bouteille)</option>
+                                            <option value="whisky">Whisky Premium (bouteille)</option>
+                                            <option value="jus-orange">Jus d'Orange (bouteille)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label>Quantité:</label>
+                                        <input type="number" min="1" value="1">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="button" class="btn btn-warning" style="margin-top: 1rem;">+ Ajouter un produit</button>
+                        
+                        <div class="form-group" style="margin-top: 1.5rem;">
+                            <label>Notes:</label>
+                            <input type="text" placeholder="Commentaires ou instructions spéciales...">
+                        </div>
+                        
+                        <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                            <button type="submit" class="btn btn-success">Envoyer la Commande</button>
+                            <button type="reset" class="btn btn-danger">Annuler</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <h3 style="margin-top: 2rem;">Historique des Commandes</h3>
+                
+                <div class="filter-bar">
+                    <div>
+                        <label>Bar:</label>
+                        <select>
+                            <option value="">Tous</option>
+                            <option value="principal">Bar Principal</option>
+                            <option value="terrasse">Bar Terrasse</option>
+                            <option value="vip">Bar VIP</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Statut:</label>
+                        <select>
+                            <option value="">Tous</option>
+                            <option value="en-attente">En attente</option>
+                            <option value="en-cours">En cours</option>
+                            <option value="livree">Livrée</option>
+                            <option value="annulee">Annulée</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary">Filtrer</button>
+                </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Date/Heure</th>
+                            <th>Bar</th>
+                            <th>Produits</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#CMD-001</td>
+                            <td>10/04/2025 18:42</td>
+                            <td>Bar Principal (Sophie)</td>
+                            <td>Bière Blonde Pression (x2), Vin Blanc (x3)</td>
+                            <td><span class="badge badge-warning">En attente</span></td>
+                            <td>
+                                <button class="btn btn-primary">Voir</button>
+                                <button class="btn btn-danger">Annuler</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#CMD-002</td>
+                            <td>10/04/2025 17:30</td>
+                            <td>Bar Terrasse (Thomas)</td>
+                            <td>Bière IPA (x1), Jus d'Orange (x2)</td>
+                            <td><span class="badge badge-success">Livrée</span></td>
+                            <td>
+                                <button class="btn btn-primary">Voir</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#CMD-003</td>
+                            <td>10/04/2025 16:15</td>
+                            <td>Bar VIP (Léa)</td>
+                            <td>Vin Rouge (x2), Whisky Premium (x1)</td>
+                            <td><span class="badge badge-success">Livrée</span></td>
+                            <td>
+                                <button class="btn btn-primary">Voir</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Livraisons -->
+            <div class="tab-content" id="livraisons">
+                <h2>Gestion des Livraisons</h2>
+                
+                <h3>Livraisons à Effectuer</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID Commande</th>
+                            <th>Bar</th>
+                            <th>Heure Commande</th>
+                            <th>Produits</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#CMD-001</td>
+                            <td>Bar Principal</td>
+                            <td>10/04/2025 18:42</td>
+                            <td>
+                                <ul style="list-style-type: none; padding: 0; margin: 0;">
+                                    <li>2x Bière Blonde Pression (fût)</li>
+                                    <li>3x Vin Blanc (bouteille)</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <button class="btn btn-success">Livrer</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3 style="margin-top: 2rem;">Historique des Livraisons</h3>
+                <div class="filter-bar">
+                    <div>
+                        <label>Bar:</label>
+                        <select>
+                            <option value="">Tous</option>
+                            <option value="principal">Bar Principal</option>
+                            <option value="terrasse">Bar Terrasse</option>
+                            <option value="vip">Bar VIP</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Date:</label>
+                        <input type="date">
+                    </div>
+                    <button class="btn btn-primary">Filtrer</button>
+                </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID Livraison</th>
+                            <th>ID Commande</th>
+                            <th>Bar</th>
+                            <th>Date/Heure</th>
+                            <th>Produits</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#LIV-001</td>
+                            <td>#CMD-002</td>
+                            <td>Bar Terrasse</td>
+                            <td>10/04/2025 17:45</td>
+                            <td>
+                                <ul style="list-style-type: none; padding: 0; margin: 0;">
+                                    <li>1x Bière IPA (fût)</li>
+                                    <li>2x Jus d'Orange (bouteille)</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <button class="btn btn-primary">Détails</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#LIV-002</td>
+                            <td>#CMD-003</td>
+                            <td>Bar VIP</td>
+                            <td>10/04/2025 16:30</td>
+                            <td>
+                                <ul style="list-style-type: none; padding: 0; margin: 0;">
+                                    <li>2x Vin Rouge (bouteille)</li>
+                                    <li>1x Whisky Premium (bouteille)</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <button class="btn btn-primary">Détails</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Retours -->
+            <div class="tab-content" id="retours">
+                <h2>Gestion des Retours</h2>
+                
+                <div class="card">
+                    <form>
+                        <h3>Nouveau Retour</h3>
+                        <div class="form-group">
+                            <label>Bar:</label>
+                            <select required>
+                                <option value="">Sélectionnez un bar</option>
+                                <option value="principal">Bar Principal</option>
+                                <option value="terrasse">Bar Terrasse</option>
+                                <option value="vip">Bar VIP</option>
+                            </select>
+                        </div>
+                        
+                        <div id="retour-produits">
+                            <div class="form-group">
+                                <h4>Produit 1</h4>
+                                <div style="display: grid; grid-template-columns: 3fr 1fr 2fr; gap: 1rem;">
+                                    <div>
+                                        <label>Produit:</label>
+                                        <select>
+                                            <option value="">Sélectionnez un produit</option>
+                                            <option value="biere-blonde">Bière Blonde Pression (fût)</option>
+                                            <option value="biere-ipa">Bière IPA (fût)</option>
+                                            <option value="vin-blanc">Vin Blanc (bouteille)</option>
+                                            <option value="vin-rouge">Vin Rouge (bouteille)</option>
+                                            <option value="vin-rose">Vin Rosé (bouteille)</option>
+                                            <option value="whisky">Whisky Premium (bouteille)</option>
+                                            <option value="jus-orange">Jus d'Orange (bouteille)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label>Quantité:</label>
+                                        <input type="number" min="1" value="1">
+                                    </div>
+                                    <div>
+                                        <label>Raison:</label>
+                                        <select>
+                                            <option value="non-ouvert">Non ouvert</option>
+                                            <option value="defectueux">Défectueux</option>
+                                            <option value="perime">Périmé</option>
+                                            <option value="erreur">Erreur de commande</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="button" class="btn btn-warning" style="margin-top: 1rem;">+ Ajouter un produit</button>
+                        
+                        <div class="form-group" style="margin-top: 1.5rem;">
+                            <label>Notes:</label>
+                            <input type="text" placeholder="Commentaires ou détails supplémentaires...">
+                        </div>
+                        
+                        <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                            <button type="submit" class="btn btn-success">Enregistrer le Retour</button>
+                            <button type="reset" class="btn btn-danger">Annuler</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <h3 style="margin-top: 2rem;">Historique des Retours</h3>
+                <div class="filter-bar">
+                    <div>
+                        <label>Bar:</label>
+                        <select>
+                            <option value="">Tous</option>
+                            <option value="principal">Bar Principal</option>
+                            <option value="terrasse">Bar Terrasse</option>
+                            <option value="vip">Bar VIP</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Date:</label>
+                        <input type="date">
+                    </div>
+                    <button class="btn btn-primary">Filtrer</button>
+                </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID Retour</th>
+                            <th>Bar</th>
+                            <th>Date/Heure</th>
+                            <th>Produits</th>
+                            <th>Statut</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#RET-001</td>
+                            <td>Bar Principal</td>
+                            <td>09/04/2025 23:30</td>
+                            <td>
+                                <ul style="list-style-type: none; padding: 0; margin: 0;">
+                                    <li>1x Bière IPA (fût) - Non utilisé</li>
+                                </ul>
+                            </td>
+                            <td><span class="badge badge-success">Confirmé</span></td>
+                            <td>
+                                <button class="btn btn-primary">Détails</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#RET-002</td>
+                            <td>Bar Terrasse</td>
+                            <td>09/04/2025 22:45</td>
+                            <td>
+                                <ul style="list-style-type: none; padding: 0; margin: 0;">
+                                    <li>2x Vin Blanc (bouteille) - Non ouvert</li>
+                                </ul>
+                            </td>
+                            <td><span class="badge badge-success">Confirmé</span></td>
+                            <td>
+                                <button class="btn btn-primary">Détails</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Rapports -->
+            <div class="tab-content" id="rapports">
+                <h2>Rapports et Statistiques</h2>
+                
+                <div class="filter-bar">
+                    <div>
+                        <label>Période:</label>
+                        <select>
+                            <option value="jour1">Jour 1</option>
+                            <option value="jour2">Jour 2</option>
+                            <option value="jour3">Jour 3</option>
+                            <option value="total">Total Festival</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Type de Rapport:</label>
+                        <select>
+                            <option value="consommation">Consommation par Bar</option>
+                            <option value="produit">Consommation par Produit</option>
+                            <option value="stock">Évolution des Stocks</option>
+                            <option value="commandes">Commandes et Livraisons</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary">Générer</button>
+                    <button class="btn btn-success">Exporter CSV</button>
+                </div>
+                
+                <div class="chart-container" style="margin-top: 1.5rem;">
+                    <h3>Consommation par Bar - Jour 1</h3>
+                    <div id="chart-rapport" style="height: 250px; background-color: #f5f7fa; display: flex; align-items: flex-end; justify-content: space-around; padding: 10px;">
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div style="width: 100px; background-color: var(--primary); height: 150px;"></div>
+                            <div style="margin-top: 10px;">Bar Principal</div>
+                            <div>150 unités</div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div style="width: 100px; background-color: var(--primary); height: 90px;"></div>
+                            <div style="margin-top: 10px;">Bar Terrasse</div>
+                            <div>90 unités</div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div style="width: 100px; background-color: var(--primary); height: 120px;"></div>
+                            <div style="margin-top: 10px;">Bar VIP</div>
+                            <div>120 unités</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 2rem;">Détails du Rapport</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Produit</th>
+                            <th>Bar Principal</th>
+                            <th>Bar Terrasse</th>
+                            <th>Bar VIP</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Bière Blonde Pression (fût)</td>
+                            <td>45</td>
+                            <td>30</td>
+                            <td>15</td>
+                            <td>90</td>
+                        </tr>
+                        <tr>
+                            <td>Bière IPA (fût)</td>
+                            <td>30</td>
+                            <td>15</td>
+                            <td>15</td>
+                            <td>60</td>
+                        </tr>
+                        <tr>
+                            <td>Vin Blanc (bouteille)</td>
+                            <td>20</td>
+                            <td>10</td>
+                            <td>30</td>
+                            <td>60</td>
+                        </tr>
+                        <tr>
+                            <td>Vin Rouge (bouteille)</td>
+                            <td>15</td>
+                            <td>10</td>
+                            <td>25</td>
+                            <td>50</td>
+                        </tr>
+                        <tr>
+                            <td>Vin Rosé (bouteille)</td>
+                            <td>10</td>
+                            <td>15</td>
+                            <td>20</td>
+                            <td>45</td>
+                        </tr>
+                        <tr>
+                            <td>Whisky Premium (bouteille)</td>
+                            <td>10</td>
+                            <td>5</td>
+                            <td>10</td>
+                            <td>25</td>
+                        </tr>
+                        <tr>
+                            <td>Jus d'Orange (bouteille)</td>
+                            <td>20</td>
+                            <td>5</td>
+                            <td>5</td>
+                            <td>30</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th>Total</th>
+                            <th>150</th>
+                            <th>90</th>
+                            <th>120</th>
+                            <th>360</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </main>
+    </div>
+    <!-- Contenu de la page de connexion -->
+    <div id="login-page" style="display:none;">
+        <div class="login-container">
+            <div class="login-logo">GestionBar</div>
+            <form class="login-form" id="login-form">
+                <div class="form-group">
+                    <label for="username">Nom d'utilisateur</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Mot de passe</label>
+                    <input type="password" id="password" required>
+                </div>
+                <div class="form-group">
+                    <label for="user-role">Rôle</label>
+                    <select id="user-role" required>
+                        <option value="">Sélectionner un rôle</option>
+                        <option value="admin">Responsable Bars</option>
+                        <option value="bar-principal">Équipe Bar Principal</option>
+                        <option value="bar-terrasse">Équipe Bar Terrasse</option>
+                        <option value="bar-vip">Équipe Bar VIP</option>
+                    </select>
+                </div>
+                <button type="submit">Se connecter</button>
+                <div id="login-error" class="login-error">Identifiants incorrects</div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Variables de l'utilisateur
+        let currentUser = {
+            username: '',
+            role: '',
+            barName: '',
+            isAdmin: false
+        };
+        
+        // Vérifier si l'utilisateur est déjà connecté
+        function checkAuth() {
+            const savedUser = localStorage.getItem('gestionBarUser');
+            
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showApp();
+                updateUIForRole();
+            } else {
+                showLoginPage();
+            }
+        }
+        
+        // Afficher la page de connexion
+        function showLoginPage() {
+            document.body.classList.add('login-page');
+            document.getElementById('login-page').style.display = 'block';
+            document.getElementById('app-container').style.display = 'none';
+        }
+        
+        // Afficher l'application
+        function showApp() {
+            document.body.classList.remove('login-page');
+            document.getElementById('login-page').style.display = 'none';
+            document.getElementById('app-container').style.display = 'block';
+        }
+        
+        // Mettre à jour l'interface en fonction du rôle
+        function updateUIForRole() {
+            // Mettre à jour le nom de l'utilisateur dans la navbar
+            document.getElementById('current-user').textContent = currentUser.username;
+            document.getElementById('current-role').textContent = getRoleName(currentUser.role);
+            
+            // Restrictions d'accès selon le rôle
+            if (!currentUser.isAdmin) {
+                // Cacher les onglets réservés à l'admin
+                const restrictedTabs = ['stock', 'livraisons', 'rapports'];
+                restrictedTabs.forEach(tabId => {
+                    const tabLink = document.querySelector(`.nav-links a[onclick*="${tabId}"]`);
+                    if (tabLink) tabLink.style.display = 'none';
+                    
+                    const tab = document.querySelector(`.tab[onclick*="${tabId}"]`);
+                    if (tab) tab.style.display = 'none';
+                });
+                
+                // Pré-sélectionner le bar dans le formulaire de commande
+                const barSelects = document.querySelectorAll('select[name="bar"]');
+                barSelects.forEach(select => {
+                    // Désactiver le select et pré-sélectionner la valeur
+                    select.disabled = true;
+                    
+                    // Trouver l'option correspondant au bar de l'utilisateur
+                    const options = select.querySelectorAll('option');
+                    options.forEach(option => {
+                        if (option.value === currentUser.role) {
+                            option.selected = true;
+                        }
+                    });
+                });
+                
+                // Afficher uniquement le tableau de bord et la section commandes
+                showTab('commandes');
+            }
+        }
+        
+        // Obtenir le nom du rôle à partir de son code
+        function getRoleName(roleCode) {
+            const roles = {
+                'admin': 'Responsable Bars',
+                'bar-principal': 'Bar Principal',
+                'bar-terrasse': 'Bar Terrasse',
+                'bar-vip': 'Bar VIP'
+            };
+            
+            return roles[roleCode] || roleCode;
+        }
+        
+        // Fonction de déconnexion
+        function logout() {
+            localStorage.removeItem('gestionBarUser');
+            currentUser = {
+                username: '',
+                role: '',
+                barName: '',
+                isAdmin: false
+            };
+            showLoginPage();
+        }
+        
+        // Gérer la soumission du formulaire de connexion
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('user-role').value;
+            
+            // Simulation d'authentification (à remplacer par un vrai système)
+            if (username && password && role) {
+                // Définir l'utilisateur courant
+                currentUser = {
+                    username: username,
+                    role: role,
+                    isAdmin: role === 'admin'
+                };
+                
+                // Enregistrer dans le localStorage pour "persister" la session
+                localStorage.setItem('gestionBarUser', JSON.stringify(currentUser));
+                
+                // Afficher l'application
+                showApp();
+                updateUIForRole();
+            } else {
+                document.getElementById('login-error').style.display = 'block';
+            }
+        });
+        
+        function showTab(tabId) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show the selected tab content
+            document.getElementById(tabId).classList.add('active');
+            
+            // Find and activate the corresponding tab
+            const tabLinks = document.querySelectorAll('.tabs .tab');
+            tabLinks.forEach(tab => {
+                if (tab.getAttribute('onclick').includes(tabId)) {
+                    tab.classList.add('active');
+                }
+            });
+        }
+        
+        // Fonctions pour les commandes et enregistrer qui a commandé
+        function submitCommande(form) {
+            // Récupérer les données du formulaire
+            const formData = new FormData(form);
+            
+            // Créer un ID unique pour la commande
+            const commandeId = 'CMD-' + Date.now();
+            
+            // Récupérer les produits commandés
+            const produits = [];
+            // Code pour récupérer les produits...
+            
+            // Créer l'objet commande avec les infos de l'utilisateur
+            const commande = {
+                id: commandeId,
+                date: new Date().toISOString(),
+                bar: currentUser.role,
+                utilisateur: currentUser.username,
+                produits: produits,
+                statut: 'en-attente'
+            };
+            
+            // Enregistrer la commande (ici on simulerait l'enregistrement)
+            console.log('Commande enregistrée:', commande);
+            
+            // Afficher un message de confirmation
+            alert('Commande ' + commandeId + ' enregistrée avec succès !');
+            
+            // Réinitialiser le formulaire
+            form.reset();
+            
+            return false; // Empêcher l'envoi du formulaire
+        }
+        
+        // Initialisation de l'application
+        document.addEventListener('DOMContentLoaded', function() {
+            // Vérifier l'authentification au chargement
+            checkAuth();
+            
+            // Ajouter les événements pour les formulaires
+            document.querySelectorAll('form').forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // Logique spécifique selon le formulaire
+                    if (this.id === 'commande-form') {
+                        submitCommande(this);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
