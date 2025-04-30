@@ -1,2427 +1,647 @@
-document.getElementById('product-form-title').textContent = 'Modifier un produit';
-            document.getElementById('product-id').value = productId;
-            document.getElementById('product-name').value = produit.Nom;
-            document.getElementById('product-category').value = produit.Catégorie;
-            document.getElementById('product-unit').value = produit.Unité;
-            document.getElementById('product-reserve').value = produit.Stock_Réserve;
-            document.getElementById('product-bar-principal').value = produit.Stock_BarOne;
-            document.getElementById('product-bar-terrasse').value = produit.Stock_BarTwo;
-            document.getElementById('product-bar-vip').value = produit.Stock_BarThree;
-            document.getElementById('product-seuil').value = produit.Seuil_Alerte;
-            document.getElementById('product-form').style.display = 'block';
+function voirCommande(commandeId) {
+    const commande = commandes.find(c => c.id === commandeId);
+    if (!commande) return;
+    
+    let produitsHtml = '<ul>';
+    commande.produits.forEach(p => {
+        const produit = produits.find(prod => prod.id === p.produit);
+        if (produit) {
+            produitsHtml += `<li>${produit.Nom} (${produit.Unité}) - Quantité: ${p.quantite}</li>`;
         }
+    });
+    produitsHtml += '</ul>';
+    
+    const date = new Date(commande.date).toLocaleString('fr-FR');
+    const message = `
+        Détails de la commande ${commande.id}
         
-        async function saveProduct(form) {
-            const productId = document.getElementById('product-id').value;
-            const isNew = !productId;
-            
-            const produit = {
-                Nom: document.getElementById('product-name').value,
-                Catégorie: document.getElementById('product-category').value,
-                Unité: document.getElementById('product-unit').value,
-                Stock_Réserve: parseInt(document.getElementById('product-reserve').value),
-                Stock_BarOne: parseInt(document.getElementById('product-bar-principal').value),
-                Stock_BarTwo: parseInt(document.getElementById('product-bar-terrasse').value),
-                Stock_BarThree: parseInt(document.getElementById('product-bar-vip').value),
-                Seuil_Alerte: parseInt(document.getElementById('product-seuil').value)
-            };
-            
-            try {
-                if (isNew) {
-                    await window.firestore.addDoc(window.firestore.collection(window.db, "produits"), produit);
-                    alert('Produit ajouté avec succès!');
-                } else {
-                    const produitRef = window.firestore.doc(window.db, "produits", productId);
-                    await window.firestore.updateDoc(produitRef, produit);
-                    alert('Produit mis à jour avec succès!');
-                }
-                
-                hideAddProductForm();
-            } catch (error) {
-                console.error("Erreur lors de l'enregistrement du produit:", error);
-                alert("Une erreur est survenue lors de l'enregistrement du produit.");
-            }
-            
-            return false;
-        }
+        Date: ${date}
+        Bar: ${getRoleName(commande.bar)}
+        Utilisateur: ${commande.utilisateur}
+        Statut: ${getStatusName(commande.statut)}
         
-        // Fonctions pour les commandes
-        function ajouterProduitCommande() {
-            const produitsContainer = document.getElementById('commande-produits');
-            const produitIndex = produitsContainer.children.length + 1;
-            
-            const newProduit = document.createElement('div');
-            newProduit.className = 'form-group produit-commande';
-            newProduit.innerHTML = `
-                <h4>Produit ${produitIndex}</h4>
-                <div style="display: grid; grid-template-columns: 3fr 1fr; gap: 1rem;">
-                    <div>
-                        <label>Produit:</label>
-                        <select name="produit" class="produit-select">
-                            <option value="">Sélectionnez un produit</option>
-                            ${produits.map(p => `<option value="${p.id}">${p.} (${p.unite})</option>`).join('')}
-                        </select>
-                    </div>
-                    <div>
-                        <label>Quantité:</label>
-                        <input type="number" name="quantite" min="1" value="1">
-                    </div>
-                </div>
-                <button type="button" class="btn btn-danger" style="margin-top: 0.5rem;" onclick="this.parentNode.remove()">Supprimer</button>
-            `;
-            
-            produitsContainer.appendChild(newProduit);
-        }
+        Produits:
+        ${produitsHtml}
         
-        async function submitCommande(form) {
-            // Récupérer les données du formulaire
-            const bar = document.getElementById('commande-bar').value;
-            const notes = form.querySelector('input[name="notes"]').value;
+        Notes: ${commande.notes || 'Aucune'}
+    `;
+    
+    alert(message);
+}
+
+// Fonctions pour les livraisons
+async function livrerCommande(commandeId) {
+    const commande = commandes.find(c => c.id === commandeId);
+    if (!commande) return;
+    
+    if (confirm(`Êtes-vous sûr de vouloir marquer la commande ${commandeId} comme livrée ?`)) {
+        try {
+            // Mettre à jour le statut de la commande
+            const commandeRef = window.firestore.doc(window.db, "commandes", commandeId);
+            await window.firestore.updateDoc(commandeRef, { statut: 'livree' });
             
-            // Récupérer les produits commandés
-            const produits = [];
-            form.querySelectorAll('.produit-commande').forEach(div => {
-                const produit = div.querySelector('select[name="produit"]').value;
-                const quantite = parseInt(div.querySelector('input[name="quantite"]').value);
-                
-                if (produit && quantite > 0) {
-                    produits.push({
-                        produit: produit,
-                        quantite: quantite
-                    });
-                }
-            });
-            
-            if (produits.length === 0) {
-                alert('Veuillez ajouter au moins un produit à votre commande.');
-                return false;
-            }
-            
-            // Créer l'objet commande
-            const commande = {
-                id: 'CMD-' + Date.now(),
+            // Créer la livraison
+            const livraison = {
+                id: 'LIV-' + Date.now(),
+                commandeId: commandeId,
                 date: new Date().toISOString(),
-                bar: bar,
-                utilisateur: currentUser.username,
-                produits: produits,
-                notes: notes,
-                statut: 'en-attente'
+                bar: commande.bar,
+                produits: commande.produits,
+                livreurId: currentUser.username
             };
             
-            try {
-                // Enregistrer dans Firebase
-                await window.firestore.setDoc(
-                    window.firestore.doc(window.db, "commandes", commande.id), 
-                    commande
-                );
-                
-                // Réinitialiser le formulaire
-                form.reset();
-                
-                // Garder uniquement le premier produit
-                const produitsContainer = document.getElementById('commande-produits');
-                const firstProduit = produitsContainer.firstChild;
-                produitsContainer.innerHTML = '';
-                produitsContainer.appendChild(firstProduit);
-                
-                // Message de confirmation
-                alert(`Commande ${commande.id} envoyée avec succès!`);
-            } catch (error) {
-                console.error("Erreur lors de l'envoi de la commande:", error);
-                alert("Une erreur est survenue lors de l'envoi de la commande.");
-            }
+            await window.firestore.setDoc(
+                window.firestore.doc(window.db, "livraisons", livraison.id),
+                livraison
+            );
             
-            return false;
-        }
-        
-        async function annulerCommande(commandeId) {
-            if (confirm('Êtes-vous sûr de vouloir annuler cette commande ?')) {
-                try {
-                    const commandeRef = window.firestore.doc(window.db, "commandes", commandeId);
-                    await window.firestore.updateDoc(commandeRef, { statut: 'annulee' });
-                    alert('Commande annulée avec succès!');
-                } catch (error) {
-                    console.error("Erreur lors de l'annulation de la commande:", error);
-                    alert("Une erreur est survenue lors de l'annulation de la commande.");
-                }
-            }
-        }
-        
-        function voirCommande(commandeId) {
-            const commande = commandes.find(c => c.id === commandeId);
-            if (!commande) return;
-            
-            let produitsHtml = '<ul>';
-            commande.produits.forEach(p => {
+            // Mettre à jour les stocks
+            for (const p of commande.produits) {
                 const produit = produits.find(prod => prod.id === p.produit);
                 if (produit) {
-                    produitsHtml += `<li>${produit.} (${produit.Unité}) - Quantité: ${p.quantite}</li>`;
-                }
-            });
-            produitsHtml += '</ul>';
-            
-            const date = new Date(commande.date).toLocaleString('fr-FR');
-            const message = `
-                Détails de la commande ${commande.id}
-                
-                Date: ${date}
-                Bar: ${getRoleName(commande.bar)}
-                Utilisateur: ${commande.utilisateur}
-                Statut: ${getStatusName(commande.statut)}
-                
-                Produits:
-                ${produitsHtml}
-                
-                Notes: ${commande.notes || 'Aucune'}
-            `;
-            
-            alert(message);
-        }
-        
-        // Fonctions pour les livraisons
-        async function livrerCommande(commandeId) {
-            const commande = commandes.find(c => c.id === commandeId);
-            if (!commande) return;
-            
-            if (confirm(`Êtes-vous sûr de vouloir marquer la commande ${commandeId} comme livrée ?`)) {
-                try {
-                    // Mettre à jour le statut de la commande
-                    const commandeRef = window.firestore.doc(window.db, "commandes", commandeId);
-                    await window.firestore.updateDoc(commandeRef, { statut: 'livree' });
+                    const produitRef = window.firestore.doc(window.db, "produits", p.produit);
                     
-                    // Créer la livraison
-                    const livraison = {
-                        id: 'LIV-' + Date.now(),
-                        commandeId: commandeId,
-                        date: new Date().toISOString(),
-                        bar: commande.bar,
-                        produits: commande.produits,
-                        livreurId: currentUser.username
-                    };
+                    // Soustraire de la réserve
+                    const update = { Stock_Réserve: produit.Stock_Réserve - p.quantite };
                     
-                    await window.firestore.setDoc(
-                        window.firestore.doc(window.db, "livraisons", livraison.id),
-                        livraison
-                    );
-                    
-                    // Mettre à jour les stocks
-                    for (const p of commande.produits) {
-                        const produit = produits.find(prod => prod.id === p.produit);
-                        if (produit) {
-                            const produitRef = window.firestore.doc(window.db, "produits", p.produit);
-                            
-                            // Soustraire de la réserve
-                            const update = { Stock_Réserve: produit.Stock_Réserve - p.quantite };
-                            
-                            // Ajouter au bar approprié
-                            switch(commande.bar) {
-                                case 'bar-principal':
-                                    update.stockBarPrincipal = produit.Stock_BarOne + p.quantite;
-                                    break;
-                                case 'bar-terrasse':
-                                    update.stockBarTerrasse = produit.Stock_BarTwo + p.quantite;
-                                    break;
-                                case 'bar-vip':
-                                    update.stockBarVIP = produit.Stock_BarThree + p.quantite;
-                                    break;
-                            }
-                            
-                            await window.firestore.updateDoc(produitRef, update);
-                        }
+                    // Ajouter au bar approprié - Standardiser les noms de propriétés
+                    switch(commande.bar) {
+                        case 'bar-principal':
+                            update.Stock_BarOne = produit.Stock_BarOne + p.quantite;
+                            break;
+                        case 'bar-terrasse':
+                            update.Stock_BarTwo = produit.Stock_BarTwo + p.quantite;
+                            break;
+                        case 'bar-vip':
+                            update.Stock_BarThree = produit.Stock_BarThree + p.quantite;
+                            break;
                     }
                     
-                    alert('Commande livrée avec succès!');
-                } catch (error) {
-                    console.error("Erreur lors de la livraison:", error);
-                    alert("Une erreur est survenue lors de la livraison.");
+                    await window.firestore.updateDoc(produitRef, update);
                 }
             }
-        }
-        
-        function voirLivraison(livraisonId) {
-            const livraison = livraisons.find(l => l.id === livraisonId);
-            if (!livraison) return;
             
-            let produitsHtml = '<ul>';
-            livraison.produits.forEach(p => {
-                const produit = produits.find(prod => prod.id === p.produit);
-                if (produit) {
-                    produitsHtml += `<li>${produit.} (${produit.Unité}) - Quantité: ${p.quantite}</li>`;
-                }
+            alert('Commande livrée avec succès!');
+        } catch (error) {
+            console.error("Erreur lors de la livraison:", error);
+            alert("Une erreur est survenue lors de la livraison.");
+        }
+    }
+}
+
+function voirLivraison(livraisonId) {
+    const livraison = livraisons.find(l => l.id === livraisonId);
+    if (!livraison) return;
+    
+    let produitsHtml = '<ul>';
+    livraison.produits.forEach(p => {
+        const produit = produits.find(prod => prod.id === p.produit);
+        if (produit) {
+            produitsHtml += `<li>${produit.Nom} (${produit.Unité}) - Quantité: ${p.quantite}</li>`;
+        }
+    });
+    produitsHtml += '</ul>';
+    
+    const date = new Date(livraison.date).toLocaleString('fr-FR');
+    const message = `
+        Détails de la livraison ${livraison.id}
+        
+        Date: ${date}
+        Commande: ${livraison.commandeId}
+        Bar: ${getRoleName(livraison.bar)}
+        Livreur: ${livraison.livreurId}
+        
+        Produits:
+        ${produitsHtml}
+    `;
+    
+    alert(message);
+}
+
+// Fonctions pour les retours
+function ajouterProduitRetour() {
+    const produitsContainer = document.getElementById('retour-produits');
+    const produitIndex = produitsContainer.children.length + 1;
+    
+    const newProduit = document.createElement('div');
+    newProduit.className = 'form-group produit-retour';
+    newProduit.innerHTML = `
+        <h4>Produit ${produitIndex}</h4>
+        <div style="display: grid; grid-template-columns: 3fr 1fr 2fr; gap: 1rem;">
+            <div>
+                <label>Produit:</label>
+                <select name="produit" class="produit-select">
+                    <option value="">Sélectionnez un produit</option>
+                    ${produits.map(p => `<option value="${p.id}">${p.Nom} (${p.Unité})</option>`).join('')}
+                </select>
+            </div>
+            <div>
+                <label>Quantité:</label>
+                <input type="number" name="quantite" min="1" value="1">
+            </div>
+            <div>
+                <label>Raison:</label>
+                <select name="raison">
+                    <option value="non-ouvert">Non ouvert</option>
+                    <option value="defectueux">Défectueux</option>
+                    <option value="perime">Périmé</option>
+                    <option value="erreur">Erreur de commande</option>
+                </select>
+            </div>
+        </div>
+        <button type="button" class="btn btn-danger" style="margin-top: 0.5rem;" onclick="this.parentNode.remove()">Supprimer</button>
+    `;
+    
+    produitsContainer.appendChild(newProduit);
+}
+
+async function submitRetour(form) {
+    // Récupérer les données du formulaire
+    const bar = document.getElementById('retour-bar').value;
+    const notes = form.querySelector('input[name="notes"]').value;
+    
+    // Récupérer les produits retournés
+    const produitsRetour = [];
+    form.querySelectorAll('.produit-retour').forEach(div => {
+        const produit = div.querySelector('select[name="produit"]').value;
+        const quantite = parseInt(div.querySelector('input[name="quantite"]').value);
+        const raison = div.querySelector('select[name="raison"]').value;
+        
+        if (produit && quantite > 0) {
+            produitsRetour.push({
+                produit: produit,
+                quantite: quantite,
+                raison: raison
             });
-            produitsHtml += '</ul>';
-            
-            const date = new Date(livraison.date).toLocaleString('fr-FR');
-            const message = `
-                Détails de la livraison ${livraison.id}
-                
-                Date: ${date}
-                Commande: ${livraison.commandeId}
-                Bar: ${getRoleName(livraison.bar)}
-                Livreur: ${livraison.livreurId}
-                
-                Produits:
-                ${produitsHtml}
-            `;
-            
-            alert(message);
         }
+    });
+    
+    if (produitsRetour.length === 0) {
+        alert('Veuillez ajouter au moins un produit à votre retour.');
+        return false;
+    }
+    
+    // Créer l'objet retour
+    const retour = {
+        id: 'RET-' + Date.now(),
+        date: new Date().toISOString(),
+        bar: bar,
+        utilisateur: currentUser.username,
+        produits: produitsRetour,
+        notes: notes,
+        statut: 'confirme'
+    };
+    
+    try {
+        // Enregistrer dans Firebase
+        await window.firestore.setDoc(
+            window.firestore.doc(window.db, "retours", retour.id), 
+            retour
+        );
         
-        // Fonctions pour les retours
-        function ajouterProduitRetour() {
-            const produitsContainer = document.getElementById('retour-produits');
-            const produitIndex = produitsContainer.children.length + 1;
-            
-            const newProduit = document.createElement('div');
-            newProduit.className = 'form-group produit-retour';
-            newProduit.innerHTML = `
-                <h4>Produit ${produitIndex}</h4>
-                <div style="display: grid; grid-template-columns: 3fr 1fr 2fr; gap: 1rem;">
-                    <div>
-                        <label>Produit:</label>
-                        <select name="produit" class="produit-select">
-                            <option value="">Sélectionnez un produit</option>
-                            ${produits.map(p => `<option value="${p.id}">${p.} (${p.unite})</option>`).join('')}
-                        </select>
-                    </div>
-                    <div>
-                        <label>Quantité:</label>
-                        <input type="number" name="quantite" min="1" value="1">
-                    </div>
-                    <div>
-                        <label>Raison:</label>
-                        <select name="raison">
-                            <option value="non-ouvert">Non ouvert</option>
-                            <option value="defectueux">Défectueux</option>
-                            <option value="perime">Périmé</option>
-                            <option value="erreur">Erreur de commande</option>
-                        </select>
-                    </div>
-                </div>
-                <button type="button" class="btn btn-danger" style="margin-top: 0.5rem;" onclick="this.parentNode.remove()">Supprimer</button>
-            `;
-            
-            produitsContainer.appendChild(newProduit);
-        }
-        
-        async function submitRetour(form) {
-            // Récupérer les données du formulaire
-            const bar = document.getElementById('retour-bar').value;
-            const notes = form.querySelector('input[name="notes"]').value;
-            
-            // Récupérer les produits retournés
-            const produitsRetour = [];
-            form.querySelectorAll('.produit-retour').forEach(div => {
-                const produit = div.querySelector('select[name="produit"]').value;
-                const quantite = parseInt(div.querySelector('input[name="quantite"]').value);
-                const raison = div.querySelector('select[name="raison"]').value;
+        // Mettre à jour les stocks
+        for (const p of produitsRetour) {
+            const produit = produits.find(prod => prod.id === p.produit);
+            if (produit) {
+                const produitRef = window.firestore.doc(window.db, "produits", p.produit);
                 
-                if (produit && quantite > 0) {
-                    produitsRetour.push({
-                        produit: produit,
-                        quantite: quantite,
-                        raison: raison
-                    });
-                }
-            });
-            
-            if (produitsRetour.length === 0) {
-                alert('Veuillez ajouter au moins un produit à votre retour.');
-                return false;
-            }
-            
-            // Créer l'objet retour
-            const retour = {
-                id: 'RET-' + Date.now(),
-                date: new Date().toISOString(),
-                bar: bar,
-                utilisateur: currentUser.username,
-                produits: produitsRetour,
-                notes: notes,
-                statut: 'confirme'
-            };
-            
-            try {
-                // Enregistrer dans Firebase
-                await window.firestore.setDoc(
-                    window.firestore.doc(window.db, "retours", retour.id), 
-                    retour
-                );
-                
-                // Mettre à jour les stocks
-                for (const p of produitsRetour) {
-                    const produit = produits.find(prod => prod.id === p.produit);
-                    if (produit) {
-                        const produitRef = window.firestore.doc(window.db, "produits", p.produit);
-                        
-                        // Ajouter à la réserve si le produit est en bon état
-                        const update = {};
-                        if (p.raison === 'non-ouvert' || p.raison === 'erreur') {
-                            update.stockReserve = produit.Stock_Réserve + p.quantite;
-                        }
-                        
-                        // Soustraire du bar approprié
-                        switch(bar) {
-                            case 'bar-principal':
-                                update.stockBarPrincipal = Math.max(0, produit.Stock_BarOne - p.quantite);
-                                break;
-                            case 'bar-terrasse':
-                                update.stockBarTerrasse = Math.max(0, produit.Stock_BarTwo - p.quantite);
-                                break;
-                            case 'bar-vip':
-                                update.stockBarVIP = Math.max(0, produit.Stock_BarThree - p.quantite);
-                                break;
-                        }
-                        
-                        await window.firestore.updateDoc(produitRef, update);
-                    }
+                // Ajouter à la réserve si le produit est en bon état
+                const update = {};
+                if (p.raison === 'non-ouvert' || p.raison === 'erreur') {
+                    update.Stock_Réserve = produit.Stock_Réserve + p.quantite;
                 }
                 
-                // Réinitialiser le formulaire
-                form.reset();
-                
-                // Garder uniquement le premier produit
-                const produitsContainer = document.getElementById('retour-produits');
-                const firstProduit = produitsContainer.firstChild;
-                produitsContainer.innerHTML = '';
-                produitsContainer.appendChild(firstProduit);
-                
-                // Message de confirmation
-                alert(`Retour ${retour.id} enregistré avec succès!`);
-            } catch (error) {
-                console.error("Erreur lors de l'enregistrement du retour:", error);
-                alert("Une erreur est survenue lors de l'enregistrement du retour.");
-            }
-            
-            return false;
-        }
-        
-        function voirRetour(retourId) {
-            const retour = retours.find(r => r.id === retourId);
-            if (!retour) return;
-            
-            let produitsHtml = '<ul>';
-            retour.produits.forEach(p => {
-                const produit = produits.find(prod => prod.id === p.produit);
-                if (produit) {
-                    produitsHtml += `<li>${produit.} (${produit.Unité}) - Quantité: ${p.quantite} - Raison: ${getRaisonRetour(p.raison)}</li>`;
-                }
-            });
-            produitsHtml += '</ul>';
-            
-            const date = new Date(retour.date).toLocaleString('fr-FR');
-            const message = `
-                Détails du retour ${retour.id}
-                
-                Date: ${date}
-                Bar: ${getRoleName(retour.bar)}
-                Utilisateur: ${retour.utilisateur}
-                
-                Produits:
-                ${produitsHtml}
-                
-                Notes: ${retour.notes || 'Aucune'}
-            `;
-            
-            alert(message);
-        }
-        
-        // Fonctions pour les rapports
-        async function genererRapport() {
-            const periode = document.getElementById('rapport-periode').value;
-            const type = document.getElementById('rapport-type').value;
-            
-            document.getElementById('rapport-titre').textContent = `${getTypeRapportName(type)} - ${getPeriodeName(periode)}`;
-            
-            // Logique pour générer le rapport selon le type
-            switch(type) {
-                case 'consommation':
-                    genererRapportConsommation(periode);
-                    break;
-                case 'produit':
-                    genererRapportProduit(periode);
-                    break;
-                case 'stock':
-                    genererRapportStock();
-                    break;
-                case 'commandes':
-                    genererRapportCommandes(periode);
-                    break;
-            }
-        }
-        
-        function genererRapportConsommation(periode) {
-            // Filtrer les livraisons selon la période
-            const livraisonsPeriode = filtrerParPeriode(livraisons, periode);
-            
-            // Calculer la consommation par bar
-            const consommationBars = {
-                'bar-principal': 0,
-                'bar-terrasse': 0,
-                'bar-vip': 0
-            };
-            
-            // Détails par produit et par bar
-            const detailsProduits = {};
-            
-            livraisonsPeriode.forEach(livraison => {
-                livraison.produits.forEach(p => {
-                    // Ajouter au total du bar
-                    consommationBars[livraison.bar] += p.quantite;
-                    
-                    // Ajouter aux détails du produit
-                    if (!detailsProduits[p.produit]) {
-                        detailsProduits[p.produit] = {
-                            'bar-principal': 0,
-                            'bar-terrasse': 0,
-                            'bar-vip': 0,
-                            'total': 0
-                        };
-                    }
-                    
-                    detailsProduits[p.produit][livraison.bar] += p.quantite;
-                    detailsProduits[p.produit].total += p.quantite;
-                });
-            });
-            
-            // Mettre à jour le graphique
-            updateRapportChart(consommationBars);
-            
-            // Mettre à jour le tableau
-            const tbody = document.getElementById('rapport-tbody');
-            
-            if (Object.keys(detailsProduits).length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center">Aucune donnée disponible pour cette période</td></tr>';
-                return;
-            }
-            
-            let html = '';
-            for (const produitId in detailsProduits) {
-                const produit = produits.find(p => p.id === produitId);
-                if (produit) {
-                    const details = detailsProduits[produitId];
-                    html += `
-                    <tr>
-                        <td>${produit.} (${produit.Unité})</td>
-                        <td>${details['bar-principal']}</td>
-                        <td>${details['bar-terrasse']}</td>
-                        <td>${details['bar-vip']}</td>
-                        <td>${details.total}</td>
-                    </tr>
-                    `;
-                }
-            }
-            
-            tbody.innerHTML = html;
-            
-            // Mettre à jour les totaux
-            document.getElementById('rapport-total-principal').textContent = consommationBars['bar-principal'];
-            document.getElementById('rapport-total-terrasse').textContent = consommationBars['bar-terrasse'];
-            document.getElementById('rapport-total-vip').textContent = consommationBars['bar-vip'];
-            document.getElementById('rapport-total-global').textContent = 
-                consommationBars['bar-principal'] + consommationBars['bar-terrasse'] + consommationBars['bar-vip'];
-        }
-        
-        function updateRapportChart(data) {
-            const chartContainer = document.getElementById('chart-rapport');
-            
-            // Trouver la valeur maximale pour l'échelle
-            const maxValue = Math.max(data['bar-principal'], data['bar-terrasse'], data['bar-vip']);
-            
-            // Calculer les hauteurs proportionnelles
-            const heightPrincipal = data['bar-principal'] > 0 ? (data['bar-principal'] / maxValue * 200) : 5;
-            const heightTerrasse = data['bar-terrasse'] > 0 ? (data['bar-terrasse'] / maxValue * 200) : 5;
-            const heightVIP = data['bar-vip'] > 0 ? (data['bar-vip'] / maxValue * 200) : 5;
-            
-            chartContainer.innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center;">
-                    <div style="width: 100px; background-color: var(--primary); height: ${heightPrincipal}px;"></div>
-                    <div style="margin-top: 10px;">Bar Principal</div>
-                    <div>${data['bar-principal']} unités</div>
-                </div>
-                <div style="display: flex; flex-direction: column; align-items: center;">
-                    <div style="width: 100px; background-color: var(--primary); height: ${heightTerrasse}px;"></div>
-                    <div style="margin-top: 10px;">Bar Terrasse</div>
-                    <div>${data['bar-terrasse']} unités</div>
-                </div>
-                <div style="display: flex; flex-direction: column; align-items: center;">
-                    <div style="width: 100px; background-color: var(--primary); height: ${heightVIP}px;"></div>
-                    <div style="margin-top: 10px;">Bar VIP</div>
-                    <div>${data['bar-vip']} unités</div>
-                </div>
-            `;
-        }
-        
-        function genererRapportProduit(periode) {
-            // Implémentation similaire mais orientée produit
-            alert('Rapport par produit - Fonctionnalité à venir');
-        }
-        
-        function genererRapportStock() {
-            // Rapport sur l'état actuel des stocks
-            alert('Rapport d\'état des stocks - Fonctionnalité à venir');
-        }
-        
-        function genererRapportCommandes(periode) {
-            // Rapport sur les commandes
-            alert('Rapport des commandes - Fonctionnalité à venir');
-        }
-        
-        function filtrerParPeriode(items, periode) {
-            if (periode === 'total') {
-                return items;
-            }
-            
-            const aujourd'hui = new Date();
-            const jourFestival = aujourd'hui.getDate();
-            
-            switch(periode) {
-                case 'jour1':
-                    return items.filter(item => {
-                        const itemDate = new Date(item.date);
-                        return itemDate.getDate() === jourFestival - 2;
-                    });
-                case 'jour2':
-                    return items.filter(item => {
-                        const itemDate = new Date(item.date);
-                        return itemDate.getDate() === jourFestival - 1;
-                    });
-                case 'jour3':
-                    return items.filter(item => {
-                        const itemDate = new Date(item.date);
-                        return itemDate.getDate() === jourFestival;
-                    });
-                default:
-                    return items;
-            }
-        }
-        
-        function getPeriodeName(periodeCode) {
-            const periodes = {
-                'jour1': 'Jour 1',
-                'jour2': 'Jour 2',
-                'jour3': 'Jour 3',
-                'total': 'Total Festival'
-            };
-            
-            return periodes[periodeCode] || periodeCode;
-        }
-        
-        function getTypeRapportName(typeCode) {
-            const types = {
-                'consommation': 'Consommation par Bar',
-                'produit': 'Consommation par Produit',
-                'stock': 'Evolution des Stocks',
-                'commandes': 'Commandes et Livraisons'
-            };
-            
-            return types[typeCode] || typeCode;
-        }
-        
-        function exporterCSV() {
-            // Fonctionnalité d'export CSV
-            alert('Export CSV - Fonctionnalité à venir');
-        }
-        
-        // Fonctions de filtre
-        function filtrerStock() {
-            const categorie = document.getElementById('filter-categorie').value;
-            const search = document.getElementById('filter-search').value.toLowerCase();
-            
-            let produitsFiltres = produits;
-            
-            if (categorie) {
-                produitsFiltres = produitsFiltres.filter(p => p.categorie === categorie);
-            }
-            
-            if (search) {
-                produitsFiltres = produitsFiltres.filter(p => p..toLowerCase().includes(search));
-            }
-            
-            const stockTbody = document.getElementById('stock-tbody');
-            
-            if (produitsFiltres.length === 0) {
-                stockTbody.innerHTML = '<tr><td colspan="9" class="text-center">Aucun produit trouvé</td></tr>';
-                return;
-            }
-            
-            let html = '';
-            produitsFiltres.forEach(produit => {
-                const total = produit.Stock_Réserve + produit.Stock_BarOne + produit.Stock_BarTwo + produit.Stock_BarThree;
-                html += `
-                <tr>
-                    <td>${produit.}</td>
-                    <td>${getCategoryName(produit.Catégorie)}</td>
-                    <td>${produit.Unité}</td>
-                    <td>${produit.Stock_Réserve}</td>
-                    <td>${produit.Stock_BarOne}</td>
-                    <td>${produit.Stock_BarTwo}</td>
-                    <td>${produit.Stock_BarThree}</td>
-                    <td>${total}</td>
-                    <td>
-                        <button class="btn btn-primary" onclick="editProduct('${produit.id}')">Ajuster</button>
-                    </td>
-                </tr>
-                `;
-            });
-            
-            stockTbody.innerHTML = html;
-        }
-        
-        function filtrerCommandes() {
-            const bar = document.getElementById('filter-commande-bar').value;
-            const user = document.getElementById('filter-commande-user').value;
-            const statut = document.getElementById('filter-commande-statut').value;
-            
-            let commandesFiltrees = commandes;
-            
-            if (bar) {
-                commandesFiltrees = commandesFiltrees.filter(c => c.bar === bar);
-            }
-            
-            if (user) {
-                commandesFiltrees = commandesFiltrees.filter(c => c.utilisateur === user);
-            }
-            
-            if (statut) {
-                commandesFiltrees = commandesFiltrees.filter(c => c.statut === statut);
-            }
-            
-            const commandesTbody = document.getElementById('commandes-tbody');
-            
-            if (commandesFiltrees.length === 0) {
-                commandesTbody.innerHTML = '<tr><td colspan="6" class="text-center">Aucune commande trouvée</td></tr>';
-                return;
-            }
-            
-            let html = '';
-            commandesFiltrees.forEach(commande => {
-                const date = new Date(commande.date).toLocaleString('fr-FR');
-                const barName = getRoleName(commande.bar);
-                
-                // Formater les produits
-                let produitsList = '';
-                commande.produits.forEach(p => {
-                    const produit = produits.find(prod => prod.id === p.produit);
-                    if (produit) {
-                        produitsList += `${produit.} (x${p.quantite}), `;
-                    }
-                });
-                produitsList = produitsList.slice(0, -2);
-                
-                // Définir le statut
-                let statutClass = '';
-                switch(commande.statut) {
-                    case 'en-attente':
-                        statutClass = 'badge-warning';
+                // Soustraire du bar approprié - Standardiser les noms de propriétés
+                switch(bar) {
+                    case 'bar-principal':
+                        update.Stock_BarOne = Math.max(0, produit.Stock_BarOne - p.quantite);
                         break;
-                    case 'en-cours':
-                        statutClass = 'badge-primary';
+                    case 'bar-terrasse':
+                        update.Stock_BarTwo = Math.max(0, produit.Stock_BarTwo - p.quantite);
                         break;
-                    case 'livree':
-                        statutClass = 'badge-success';
-                        break;
-                    case 'annulee':
-                        statutClass = 'badge-danger';
+                    case 'bar-vip':
+                        update.Stock_BarThree = Math.max(0, produit.Stock_BarThree - p.quantite);
                         break;
                 }
                 
-                let actions = `<button class="btn btn-primary" onclick="voirCommande('${commande.id}')">Voir</button>`;
-                
-                if (commande.statut === 'en-attente') {
-                    actions += ` <button class="btn btn-danger" onclick="annulerCommande('${commande.id}')">Annuler</button>`;
-                }
-                
-                html += `
-                <tr>
-                    <td>${commande.id}</td>
-                    <td>${date}</td>
-                    <td>${barName} (${commande.utilisateur})</td>
-                    <td>${produitsList}</td>
-                    <td><span class="badge ${statutClass}">${getStatusName(commande.statut)}</span></td>
-                    <td>${actions}</td>
-                </tr>
-                `;
-            });
-            
-            commandesTbody.innerHTML = html;
-        }
-        
-        function filtrerLivraisons() {
-            const bar = document.getElementById('filter-livraison-bar').value;
-            const date = document.getElementById('filter-livraison-date').value;
-            
-            let livraisonsFiltrees = livraisons;
-            
-            if (bar) {
-                livraisonsFiltrees = livraisonsFiltrees.filter(l => l.bar === bar);
-            }
-            
-            if (date) {
-                livraisonsFiltrees = livraisonsFiltrees.filter(l => l.date.startsWith(date));
-            }
-            
-            const livraisonsTbody = document.getElementById('livraisons-history-tbody');
-            
-            if (livraisonsFiltrees.length === 0) {
-                livraisonsTbody.innerHTML = '<tr><td colspan="6" class="text-center">Aucune livraison trouvée</td></tr>';
-                return;
-            }
-            
-            let html = '';
-            livraisonsFiltrees.forEach(livraison => {
-                const date = new Date(livraison.date).toLocaleString('fr-FR');
-                const barName = getRoleName(livraison.bar);
-                
-                // Formater les produits
-                let produitsList = '<ul style="list-style-type: none; padding: 0; margin: 0;">';
-                livraison.produits.forEach(p => {
-                    const produit = produits.find(prod => prod.id === p.produit);
-                    if (produit) {
-                        produitsList += `<li>${p.quantite}x ${produit.Nom} (${produit.Unité})</li>`;
-                    }
-                });
-                produitsList += '</ul>';
-                
-                html += `
-                <tr>
-                    <td>${livraison.id}</td>
-                    <td>${livraison.commandeId}</td>
-                    <td>${barName}</td>
-                    <td>${date}</td>
-                    <td>${produitsList}</td>
-                    <td>
-                        <button class="btn btn-primary" onclick="voirLivraison('${livraison.id}')">Détails</button>
-                    </td>
-                </tr>
-                `;
-            });
-            
-            livraisonsTbody.innerHTML = html;
-        }
-        
-        function filtrerRetours() {
-            const bar = document.getElementById('filter-retour-bar').value;
-            const date = document.getElementById('filter-retour-date').value;
-            
-            let retoursFiltres = retours;
-            
-            if (bar) {
-                retoursFiltres = retoursFiltres.filter(r => r.bar === bar);
-            }
-            
-            if (date) {
-                retoursFiltres = retoursFiltres.filter(r => r.date.startsWith(date));
-            }
-            
-            const retoursTbody = document.getElementById('retours-tbody');
-            
-            if (retoursFiltres.length === 0) {
-                retoursTbody.innerHTML = '<tr><td colspan="6" class="text-center">Aucun retour trouvé</td></tr>';
-                return;
-            }
-            
-            let html = '';
-            retoursFiltres.forEach(retour => {
-                const date = new Date(retour.date).toLocaleString('fr-FR');
-                const barName = getRoleName(retour.bar);
-                
-                // Formater les produits
-                let produitsList = '<ul style="list-style-type: none; padding: 0; margin: 0;">';
-                retour.produits.forEach(p => {
-                    const produit = produits.find(prod => prod.id === p.produit);
-                    if (produit) {
-                        produitsList += `<li>${p.quantite}x ${produit.Nom} - ${getRaisonRetour(p.raison)}</li>`;
-                    }
-                });
-                produitsList += '</ul>';
-                
-                html += `
-                <tr>
-                    <td>${retour.id}</td>
-                    <td>${barName}</td>
-                    <td>${date}</td>
-                    <td>${produitsList}</td>
-                    <td><span class="badge badge-success">Confirmé</span></td>
-                    <td>
-                        <button class="btn btn-primary" onclick="voirRetour('${retour.id}')">Détails</button>
-                    </td>
-                </tr>
-                `;
-            });
-            
-            retoursTbody.innerHTML = html;
-        }
-        
-        // Commander directement un produit
-        function commanderProduit(produitId) {
-            const produit = produits.find(p => p.id === produitId);
-            if (!produit) return;
-            
-            // Aller à l'onglet commandes
-            showTab('commandes');
-            
-            // Ajouter le produit au formulaire
-            const produitSelect = document.querySelector('.produit-select');
-            if (produitSelect) {
-                produitSelect.value = produitId;
-            }
-            
-            // Focus sur la quantité
-            const quantiteInput = document.querySelector('input[name="quantite"]');
-            if (quantiteInput) {
-                quantiteInput.focus();
+                await window.firestore.updateDoc(produitRef, update);
             }
         }
         
-        // Gérer la soumission du formulaire de produit
-        document.addEventListener('DOMContentLoaded', function() {
-            const addProductForm = document.getElementById('add-product-form');
-            if (addProductForm) {
-                addProductForm.addEventListener('submit', function(event) {
-                    event.preventDefault();
-                    saveProduct(this);
-                });
+        // Réinitialiser le formulaire
+        form.reset();
+        
+        // Garder uniquement le premier produit
+        const produitsContainer = document.getElementById('retour-produits');
+        const firstProduit = produitsContainer.firstChild;
+        produitsContainer.innerHTML = '';
+        produitsContainer.appendChild(firstProduit);
+        
+        // Message de confirmation
+        alert(`Retour ${retour.id} enregistré avec succès!`);
+    } catch (error) {
+        console.error("Erreur lors de l'enregistrement du retour:", error);
+        alert("Une erreur est survenue lors de l'enregistrement du retour.");
+    }
+    
+    return false;
+}
+
+function voirRetour(retourId) {
+    const retour = retours.find(r => r.id === retourId);
+    if (!retour) return;
+    
+    let produitsHtml = '<ul>';
+    retour.produits.forEach(p => {
+        const produit = produits.find(prod => prod.id === p.produit);
+        if (produit) {
+            produitsHtml += `<li>${produit.Nom} (${produit.Unité}) - Quantité: ${p.quantite} - Raison: ${getRaisonRetour(p.raison)}</li>`;
+        }
+    });
+    produitsHtml += '</ul>';
+    
+    const date = new Date(retour.date).toLocaleString('fr-FR');
+    const message = `
+        Détails du retour ${retour.id}
+        
+        Date: ${date}
+        Bar: ${getRoleName(retour.bar)}
+        Utilisateur: ${retour.utilisateur}
+        
+        Produits:
+        ${produitsHtml}
+        
+        Notes: ${retour.notes || 'Aucune'}
+    `;
+    
+    alert(message);
+}
+
+// Fonctions pour les rapports
+async function genererRapport() {
+    const periode = document.getElementById('rapport-periode').value;
+    const type = document.getElementById('rapport-type').value;
+    
+    document.getElementById('rapport-titre').textContent = `${getTypeRapportName(type)} - ${getPeriodeName(periode)}`;
+    
+    // Logique pour générer le rapport selon le type
+    switch(type) {
+        case 'consommation':
+            genererRapportConsommation(periode);
+            break;
+        case 'produit':
+            genererRapportProduit(periode);
+            break;
+        case 'stock':
+            genererRapportStock();
+            break;
+        case 'commandes':
+            genererRapportCommandes(periode);
+            break;
+    }
+}
+
+function genererRapportConsommation(periode) {
+    // Filtrer les livraisons selon la période
+    const livraisonsPeriode = filtrerParPeriode(livraisons, periode);
+    
+    // Calculer la consommation par bar
+    const consommationBars = {
+        'bar-principal': 0,
+        'bar-terrasse': 0,
+        'bar-vip': 0
+    };
+    
+    // Détails par produit et par bar
+    const detailsProduits = {};
+    
+    livraisonsPeriode.forEach(livraison => {
+        livraison.produits.forEach(p => {
+            // Ajouter au total du bar
+            consommationBars[livraison.bar] += p.quantite;
+            
+            // Ajouter aux détails du produit
+            if (!detailsProduits[p.produit]) {
+                detailsProduits[p.produit] = {
+                    'bar-principal': 0,
+                    'bar-terrasse': 0,
+                    'bar-vip': 0,
+                    'total': 0
+                };
             }
             
-            // Vérifier l'authentification au chargement
-            checkAuth();
-            
-            // Gérer le formulaire de connexion
-            document.getElementById('login-form').addEventListener('submit', function(event) {
-                event.preventDefault();
-                
-                const username = document.getElementById('username').value;
-                const password = document.getElementById('password').value;
-                const role = document.getElementById('user-role').value;
-                
-                // Vérification simple (à remplacer par une authentification Firebase)
-                if (username && password && role) {
-                    // Définir l'utilisateur courant
-                    currentUser = {
-                        username: username,
-                        role: role,
-                        isAdmin: role === 'admin'
-                    };
-                    
-                    // Enregistrer dans le localStorage pour "persister" la session
-                    localStorage.setItem('gestionBarUser', JSON.stringify(currentUser));
-                    
-                    // Afficher l'application
-                    showApp();
-                    
-                    // Initialiser les données
-                    initFirebaseListeners();
-                    
-                    // Mettre à jour l'interface
-                    updateUIForRole();
-                } else {
-                    document.getElementById('login-error').style.display = 'block';
-                }
-            });
+            detailsProduits[p.produit][livraison.bar] += p.quantite;
+            detailsProduits[p.produit].total += p.quantite;
         });
-    </script>
-</body>
-</html><!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GestionBar - Festival</title>
+    });
     
-    <!-- Page de connexion -->
-    <style id="login-styles">
-        body.login-page {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #3498db;
-            background-image: linear-gradient(135deg, #3498db, #2c3e50);
-            margin: 0;
-            padding: 0;
-        }
-        
-        .login-container {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            width: 100%;
-            max-width: 400px;
-        }
-        
-        .login-logo {
-            text-align: center;
-            font-size: 2rem;
-            font-weight: bold;
-            color: #3498db;
-            margin-bottom: 1.5rem;
-        }
-        
-        .login-form .form-group {
-            margin-bottom: 1.5rem;
-        }
-        
-        .login-form label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-        }
-        
-        .login-form input, .login-form select {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 1rem;
-        }
-        
-        .login-form button {
-            width: 100%;
-            padding: 0.75rem;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        
-        .login-form button:hover {
-            background-color: #2980b9;
-        }
-        
-        .login-error {
-            color: #e74c3c;
-            text-align: center;
-            margin-top: 1rem;
-            font-weight: 500;
-            display: none;
-        }
-    </style>
+    // Mettre à jour le graphique
+    updateRapportChart(consommationBars);
     
-    <!-- Styles pour l'application principale -->
-    <style>
-        :root {
-            --primary: #3498db;
-            --secondary: #2c3e50;
-            --success: #2ecc71;
-            --danger: #e74c3c;
-            --warning: #f39c12;
-            --light: #ecf0f1;
-            --dark: #34495e;
+    // Mettre à jour le tableau
+    const tbody = document.getElementById('rapport-tbody');
+    
+    if (Object.keys(detailsProduits).length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Aucune donnée disponible pour cette période</td></tr>';
+        return;
+    }
+    
+    let html = '';
+    for (const produitId in detailsProduits) {
+        const produit = produits.find(p => p.id === produitId);
+        if (produit) {
+            const details = detailsProduits[produitId];
+            html += `
+            <tr>
+                <td>${produit.Nom} (${produit.Unité})</td>
+                <td>${details['bar-principal']}</td>
+                <td>${details['bar-terrasse']}</td>
+                <td>${details['bar-vip']}</td>
+                <td>${details.total}</td>
+            </tr>
+            `;
         }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f5f7fa;
-            color: #333;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 15px;
-        }
-        
-        header {
-            background-color: var(--primary);
-            color: white;
-            padding: 1rem 0;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .logo {
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-        
-        .nav-links {
-            display: flex;
-            gap: 1.5rem;
-        }
-        
-        .nav-links a {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        
-        .tab-container {
-            margin-top: 2rem;
-        }
-        
-        .tabs {
-            display: flex;
-            border-bottom: 1px solid #ddd;
-            margin-bottom: 1rem;
-        }
-        
-        .tab {
-            padding: 0.5rem 1rem;
-            cursor: pointer;
-            border: 1px solid transparent;
-            border-bottom: none;
-            margin-right: 0.5rem;
-            border-radius: 5px 5px 0 0;
-        }
-        
-        .tab.active {
-            border-color: #ddd;
-            background-color: white;
-            color: var(--primary);
-            font-weight: bold;
-        }
-        
-        .tab-content {
-            display: none;
-            background: white;
-            padding: 1.5rem;
-            border-radius: 0 0 5px 5px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1rem 0;
-        }
-        
-        th, td {
-            padding: 0.75rem;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        th {
-            background-color: var(--light);
-            font-weight: bold;
-        }
-        
-        tr:hover {
-            background-color: #f9f9f9;
-        }
-        
-        .btn {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: background-color 0.3s;
-        }
-        
-        .btn-primary {
-            background-color: var(--primary);
-            color: white;
-        }
-        
-        .btn-success {
-            background-color: var(--success);
-            color: white;
-        }
-        
-        .btn-danger {
-            background-color: var(--danger);
-            color: white;
-        }
-        
-        .btn-warning {
-            background-color: var(--warning);
-            color: white;
-        }
-        
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-        }
-        
-        input, select {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 1rem;
-        }
-        
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin: 1.5rem 0;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 1.5rem;
-        }
-        
-        .card-title {
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-bottom: 1rem;
-            color: var(--secondary);
-        }
-        
-        .card-value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--primary);
-        }
-        
-        .filter-bar {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            align-items: center;
-        }
-        
-        .filter-bar select, .filter-bar input {
-            width: auto;
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        
-        .badge-success {
-            background-color: var(--success);
-            color: white;
-        }
-        
-        .badge-warning {
-            background-color: var(--warning);
-            color: white;
-        }
-        
-        .badge-danger {
-            background-color: var(--danger);
-            color: white;
-        }
-        
-        .chart-container {
-            height: 300px;
-            margin: 2rem 0;
-        }
-        
-        @media (max-width: 768px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .filter-bar {
-                flex-direction: column;
-                align-items: stretch;
-            }
-        }
-    </style>
+    }
+    
+    tbody.innerHTML = html;
+    
+    // Mettre à jour les totaux
+    document.getElementById('rapport-total-principal').textContent = consommationBars['bar-principal'];
+    document.getElementById('rapport-total-terrasse').textContent = consommationBars['bar-terrasse'];
+    document.getElementById('rapport-total-vip').textContent = consommationBars['bar-vip'];
+    document.getElementById('rapport-total-global').textContent = 
+        consommationBars['bar-principal'] + consommationBars['bar-terrasse'] + consommationBars['bar-vip'];
+}
 
-    <!-- Firebase SDK -->
-    <script type="module">
-        // Import the functions you need from the SDKs
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, query, orderBy, doc, setDoc, updateDoc, onSnapshot, deleteDoc, where } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-        
-        // Your web app's Firebase configuration - À REMPLACER AVEC VOS VALEURS
-        const firebaseConfig = {
-              apiKey: "AIzaSyDcTWoruxi2CZOQdkTnhPOiYMwvWmVtzvw",
-                authDomain: "bars-circusofsound.firebaseapp.com",
-                projectId: "bars-circusofsound",
-                storageBucket: "bars-circusofsound.firebasestorage.app",
-                messagingSenderId: "833579156041",
-                appId: "1:833579156041:web:b00ecd80a73bd81390a841",
-                measurementId: "G-HPEZCD886G"
-        };
-        
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        
-        // Rendre accessible globalement
-        window.db = db;
-        window.firestore = { 
-            collection, 
-            addDoc, 
-            getDocs, 
-            query, 
-            orderBy,
-            doc,
-            setDoc,
-            updateDoc,
-            onSnapshot,
-            deleteDoc,
-            where
-        };
-    </script>
-</head>
-<body>
-    <!-- Contenu de la page de connexion -->
-    <div id="login-page" style="display:none;">
-        <div class="login-container">
-            <div class="login-logo">GestionBar</div>
-            <form class="login-form" id="login-form">
-                <div class="form-group">
-                    <label for="username">Nom d'utilisateur</label>
-                    <input type="text" id="username" required>
-                </div>
-                <div class="form-group">
-                    <label for="password">Mot de passe</label>
-                    <input type="password" id="password" required>
-                </div>
-                <div class="form-group">
-                    <label for="user-role">Rôle</label>
-                    <select id="user-role" required>
-                        <option value="">Sélectionner un rôle</option>
-                        <option value="admin">Responsable Bars</option>
-                        <option value="bar-principal">Équipe Bar Principal</option>
-                        <option value="bar-terrasse">Équipe Bar Terrasse</option>
-                        <option value="bar-vip">Équipe Bar VIP</option>
-                    </select>
-                </div>
-                <button type="submit">Se connecter</button>
-                <div id="login-error" class="login-error">Identifiants incorrects</div>
-            </form>
+function updateRapportChart(data) {
+    const chartContainer = document.getElementById('chart-rapport');
+    
+    // Trouver la valeur maximale pour l'échelle
+    const maxValue = Math.max(data['bar-principal'], data['bar-terrasse'], data['bar-vip']);
+    
+    // Calculer les hauteurs proportionnelles
+    const heightPrincipal = data['bar-principal'] > 0 ? (data['bar-principal'] / maxValue * 200) : 5;
+    const heightTerrasse = data['bar-terrasse'] > 0 ? (data['bar-terrasse'] / maxValue * 200) : 5;
+    const heightVIP = data['bar-vip'] > 0 ? (data['bar-vip'] / maxValue * 200) : 5;
+    
+    chartContainer.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center;">
+            <div style="width: 100px; background-color: var(--primary); height: ${heightPrincipal}px;"></div>
+            <div style="margin-top: 10px;">Bar Principal</div>
+            <div>${data['bar-principal']} unités</div>
         </div>
-    </div>
+        <div style="display: flex; flex-direction: column; align-items: center;">
+            <div style="width: 100px; background-color: var(--primary); height: ${heightTerrasse}px;"></div>
+            <div style="margin-top: 10px;">Bar Terrasse</div>
+            <div>${data['bar-terrasse']} unités</div>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center;">
+            <div style="width: 100px; background-color: var(--primary); height: ${heightVIP}px;"></div>
+            <div style="margin-top: 10px;">Bar VIP</div>
+            <div>${data['bar-vip']} unités</div>
+        </div>
+    `;
+}
 
-    <div id="app-container" style="display:none;">
-    <header>
-        <div class="container">
-            <nav>
-                <div class="logo">GestionBar</div>
-                <div class="nav-links">
-                    <a href="#" onclick="showTab('dashboard')">Tableau de Bord</a>
-                    <a href="#" onclick="showTab('stock')">Stocks</a>
-                    <a href="#" onclick="showTab('commandes')">Commandes</a>
-                    <a href="#" onclick="showTab('livraisons')">Livraisons</a>
-                    <a href="#" onclick="showTab('retours')">Retours</a>
-                    <a href="#" onclick="showTab('rapports')">Rapports</a>
-                </div>
-                <div class="user-info" style="display:flex; align-items:center; margin-left:auto; color:white;">
-                    <span id="current-user" style="margin-right:5px; font-weight:bold;">Utilisateur</span>
-                    (<span id="current-role">Rôle</span>)
-                    <button onclick="logout()" style="margin-left:15px; background:none; border:1px solid white; color:white; padding:3px 8px; border-radius:3px; cursor:pointer;">Déconnexion</button>
-                </div>
-            </nav>
-        </div>
-    </header>
+function genererRapportProduit(periode) {
+    // Implémentation similaire mais orientée produit
+    alert('Rapport par produit - Fonctionnalité à venir');
+}
+
+function genererRapportStock() {
+    // Rapport sur l'état actuel des stocks
+    alert('Rapport d\'état des stocks - Fonctionnalité à venir');
+}
+
+function genererRapportCommandes(periode) {
+    // Rapport sur les commandes
+    alert('Rapport des commandes - Fonctionnalité à venir');
+}
+
+function filtrerParPeriode(items, periode) {
+    if (periode === 'total') {
+        return items;
+    }
     
-    <main class="container">
-        <div class="tab-container">
-            <div class="tabs">
-                <div class="tab active" onclick="showTab('dashboard')">Tableau de Bord</div>
-                <div class="tab" onclick="showTab('stock')">Stocks</div>
-                <div class="tab" onclick="showTab('commandes')">Commandes</div>
-                <div class="tab" onclick="showTab('livraisons')">Livraisons</div>
-                <div class="tab" onclick="showTab('retours')">Retours</div>
-                <div class="tab" onclick="showTab('rapports')">Rapports</div>
-            </div>
-            
-            <!-- Tableau de Bord -->
-            <div class="tab-content active" id="dashboard">
-                <h2>Tableau de Bord</h2>
-                
-                <div class="grid">
-                    <div class="card">
-                        <div class="card-title">Total Boissons en Stock</div>
-                        <div class="card-value" id="total-stock">-</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-title">Commandes en Attente</div>
-                        <div class="card-value" id="commandes-attente">-</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-title">Livraisons Aujourd'hui</div>
-                        <div class="card-value" id="livraisons-today">-</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-title">Produits Faibles en Stock</div>
-                        <div class="card-value" id="stock-faible">-</div>
-                    </div>
-                </div>
-                
-                <div class="chart-container">
-                    <h3>Consommation par Bar (Jour 1)</h3>
-                    <div id="chart" style="height: 250px; background-color: #f5f7fa; display: flex; align-items: flex-end; justify-content: space-around; padding: 10px;">
-                        <div style="display: flex; flex-direction: column; align-items: center;">
-                            <div style="width: 100px; background-color: var(--primary); height: 150px;"></div>
-                            <div style="margin-top: 10px;">Bar Principal</div>
-                        </div>
-                        <div style="display: flex; flex-direction: column; align-items: center;">
-                            <div style="width: 100px; background-color: var(--primary); height: 90px;"></div>
-                            <div style="margin-top: 10px;">Bar Terrasse</div>
-                        </div>
-                        <div style="display: flex; flex-direction: column; align-items: center;">
-                            <div style="width: 100px; background-color: var(--primary); height: 120px;"></div>
-                            <div style="margin-top: 10px;">Bar VIP</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <h3>Alertes de Stock</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Produit</th>
-                            <th>Quantité Restante</th>
-                            <th>Seuil Critique</th>
-                            <th>Statut</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="alertes-stock-tbody">
-                        <tr>
-                            <td colspan="5" class="text-center">Chargement des alertes...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Stocks -->
-            <div class="tab-content" id="stock">
-                <h2>Gestion des Stocks</h2>
-                
-                <div class="filter-bar">
-                    <div>
-                        <label>Catégorie:</label>
-                        <select id="filter-categorie">
-                            <option value="">Toutes</option>
-                            <option value="biere">Bière</option>
-                            <option value="vin">Vin</option>
-                            <option value="cocktail">Cocktail</option>
-                            <option value="soft">Soft / Sans Alcool</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label>Recherche:</label>
-                        <input type="text" id="filter-search" placeholder="Nom du produit...">
-                    </div>
-                    <button class="btn btn-primary" onclick="filtrerStock()">Filtrer</button>
-                    <button class="btn btn-success" onclick="showAddProductForm()">+ Ajouter un Produit</button>
-                </div>
-                
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Produit</th>
-                            <th>Catégorie</th>
-                            <th>Unité</th>
-                            <th>Stock Réserve</th>
-                            <th>Stock Bar Principal</th>
-                            <th>Stock Bar Terrasse</th>
-                            <th>Stock Bar VIP</th>
-                            <th>Total</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="stock-tbody">
-                        <tr>
-                            <td colspan="9" class="text-center">Chargement des stocks...</td>
-                        </tr>
-                    </tbody>
-                </table>
-                
-                <!-- Formulaire d'ajout/modification de produit (caché par défaut) -->
-                <div id="product-form" class="card" style="display: none; margin-top: 20px;">
-                    <h3 id="product-form-title">Ajouter un produit</h3>
-                    <form id="add-product-form">
-                        <input type="hidden" id="product-id" value="">
-                        <div class="form-group">
-                            <label for="product-name">Nom du produit</label>
-                            <input type="text" id="product-name" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="product-category">Catégorie</label>
-                            <select id="product-category" required>
-                                <option value="biere">Bière</option>
-                                <option value="vin">Vin</option>
-                                <option value="cocktail">Cocktail</option>
-                                <option value="soft">Soft / Sans Alcool</option>
-                                <option value="spiritueux">Spiritueux</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="product-unit">Unité</label>
-                            <input type="text" id="product-unit" placeholder="Ex: Fût 30L, Bouteille 75cl" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="product-reserve">Stock Réserve</label>
-                            <input type="number" id="product-reserve" min="0" value="0" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="product-bar-principal">Stock Bar Principal</label>
-                            <input type="number" id="product-bar-principal" min="0" value="0" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="product-bar-terrasse">Stock Bar Terrasse</label>
-                            <input type="number" id="product-bar-terrasse" min="0" value="0" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="product-bar-vip">Stock Bar VIP</label>
-                            <input type="number" id="product-bar-vip" min="0" value="0" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="product-seuil">Seuil d'alerte</label>
-                            <input type="number" id="product-seuil" min="1" value="5" required>
-                        </div>
-                        <div style="display: flex; gap: 1rem;">
-                            <button type="submit" class="btn btn-success">Enregistrer</button>
-                            <button type="button" class="btn btn-danger" onclick="hideAddProductForm()">Annuler</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            
-            <!-- Commandes -->
-            <div class="tab-content" id="commandes">
-                <h2>Gestion des Commandes</h2>
-                
-                <div class="card">
-                    <form id="commande-form" onsubmit="return submitCommande(this)">
-                        <h3>Nouvelle Commande</h3>
-                        <div class="form-group">
-                            <label>Bar:</label>
-                            <select name="bar" id="commande-bar" required>
-                                <option value="">Sélectionnez un bar</option>
-                                <option value="bar-principal">Bar Principal</option>
-                                <option value="bar-terrasse">Bar Terrasse</option>
-                                <option value="bar-vip">Bar VIP</option>
-                            </select>
-                        </div>
-                        
-                        <div id="commande-produits">
-                            <div class="form-group produit-commande">
-                                <h4>Produit 1</h4>
-                                <div style="display: grid; grid-template-columns: 3fr 1fr; gap: 1rem;">
-                                    <div>
-                                        <label>Produit:</label>
-                                        <select name="produit" class="produit-select">
-                                            <option value="">Sélectionnez un produit</option>
-                                            <!-- Options ajoutées dynamiquement depuis Firebase -->
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label>Quantité:</label>
-                                        <input type="number" name="quantite" min="1" value="1">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <button type="button" class="btn btn-warning" style="margin-top: 1rem;" onclick="ajouterProduitCommande()">+ Ajouter un produit</button>
-                        
-                        <div class="form-group" style="margin-top: 1.5rem;">
-                            <label>Notes:</label>
-                            <input type="text" name="notes" placeholder="Commentaires ou instructions spéciales...">
-                        </div>
-                        
-                        <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
-                            <button type="submit" class="btn btn-success">Envoyer la Commande</button>
-                            <button type="reset" class="btn btn-danger">Annuler</button>
-                        </div>
-                    </form>
-                </div>
-                
-                <h3 style="margin-top: 2rem;">Historique des Commandes</h3>
-                
-                <div class="filter-bar">
-                    <div>
-                        <label>Bar:</label>
-                        <select id="filter-commande-bar">
-                            <option value="">Tous</option>
-                            <option value="bar-principal">Bar Principal</option>
-                            <option value="bar-terrasse">Bar Terrasse</option>
-                            <option value="bar-vip">Bar VIP</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label>Utilisateur:</label>
-                        <select id="filter-commande-user">
-                            <option value="">Tous</option>
-                            <!-- Options ajoutées dynamiquement -->
-                        </select>
-                    </div>
-                    <div>
-                        <label>Statut:</label>
-                        <select id="filter-commande-statut">
-                            <option value="">Tous</option>
-                            <option value="en-attente">En attente</option>
-                            <option value="en-cours">En cours</option>
-                            <option value="livree">Livrée</option>
-                            <option value="annulee">Annulée</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary" onclick="filtrerCommandes()">Filtrer</button>
-                </div>
-                
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Date/Heure</th>
-                            <th>Bar</th>
-                            <th>Produits</th>
-                            <th>Statut</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="commandes-tbody">
-                        <tr>
-                            <td colspan="6" class="text-center">Chargement des commandes...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Livraisons -->
-            <div class="tab-content" id="livraisons">
-                <h2>Gestion des Livraisons</h2>
-                
-                <h3>Livraisons à Effectuer</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID Commande</th>
-                            <th>Bar</th>
-                            <th>Heure Commande</th>
-                            <th>Produits</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="livraisons-attente-tbody">
-                        <tr>
-                            <td colspan="5" class="text-center">Chargement des livraisons en attente...</td>
-                        </tr>
-                    </tbody>
-                </table>
-                
-                <h3 style="margin-top: 2rem;">Historique des Livraisons</h3>
-                <div class="filter-bar">
-                    <div>
-                        <label>Bar:</label>
-                        <select id="filter-livraison-bar">
-                            <option value="">Tous</option>
-                            <option value="bar-principal">Bar Principal</option>
-                            <option value="bar-terrasse">Bar Terrasse</option>
-                            <option value="bar-vip">Bar VIP</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label>Date:</label>
-                        <input type="date" id="filter-livraison-date">
-                    </div>
-                    <button class="btn btn-primary" onclick="filtrerLivraisons()">Filtrer</button>
-                </div>
-                
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID Livraison</th>
-                            <th>ID Commande</th>
-                            <th>Bar</th>
-                            <th>Date/Heure</th>
-                            <th>Produits</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="livraisons-history-tbody">
-                        <tr>
-                            <td colspan="6" class="text-center">Chargement de l'historique des livraisons...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Retours -->
-            <div class="tab-content" id="retours">
-                <h2>Gestion des Retours</h2>
-                
-                <div class="card">
-                    <form id="retour-form" onsubmit="return submitRetour(this)">
-                        <h3>Nouveau Retour</h3>
-                        <div class="form-group">
-                            <label>Bar:</label>
-                            <select name="bar" id="retour-bar" required>
-                                <option value="">Sélectionnez un bar</option>
-                                <option value="bar-principal">Bar Principal</option>
-                                <option value="bar-terrasse">Bar Terrasse</option>
-                                <option value="bar-vip">Bar VIP</option>
-                            </select>
-                        </div>
-                        
-                        <div id="retour-produits">
-                            <div class="form-group produit-retour">
-                                <h4>Produit 1</h4>
-                                <div style="display: grid; grid-template-columns: 3fr 1fr 2fr; gap: 1rem;">
-                                    <div>
-                                        <label>Produit:</label>
-                                        <select name="produit" class="produit-select">
-                                            <option value="">Sélectionnez un produit</option>
-                                            <!-- Options ajoutées dynamiquement depuis Firebase -->
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label>Quantité:</label>
-                                        <input type="number" name="quantite" min="1" value="1">
-                                    </div>
-                                    <div>
-                                        <label>Raison:</label>
-                                        <select name="raison">
-                                            <option value="non-ouvert">Non ouvert</option>
-                                            <option value="defectueux">Défectueux</option>
-                                            <option value="perime">Périmé</option>
-                                            <option value="erreur">Erreur de commande</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <button type="button" class="btn btn-warning" style="margin-top: 1rem;" onclick="ajouterProduitRetour()">+ Ajouter un produit</button>
-                        
-                        <div class="form-group" style="margin-top: 1.5rem;">
-                            <label>Notes:</label>
-                            <input type="text" name="notes" placeholder="Commentaires ou détails supplémentaires...">
-                        </div>
-                        
-                        <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
-                            <button type="submit" class="btn btn-success">Enregistrer le Retour</button>
-                            <button type="reset" class="btn btn-danger">Annuler</button>
-                        </div>
-                    </form>
-                </div>
-                
-                <h3 style="margin-top: 2rem;">Historique des Retours</h3>
-                <div class="filter-bar">
-                    <div>
-                        <label>Bar:</label>
-                        <select id="filter-retour-bar">
-                            <option value="">Tous</option>
-                            <option value="bar-principal">Bar Principal</option>
-                            <option value="bar-terrasse">Bar Terrasse</option>
-                            <option value="bar-vip">Bar VIP</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label>Date:</label>
-                        <input type="date" id="filter-retour-date">
-                    </div>
-                    <button class="btn btn-primary" onclick="filtrerRetours()">Filtrer</button>
-                </div>
-                
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID Retour</th>
-                            <th>Bar</th>
-                            <th>Date/Heure</th>
-                            <th>Produits</th>
-                            <th>Statut</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="retours-tbody">
-                        <tr>
-                            <td colspan="6" class="text-center">Chargement des retours...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Rapports -->
-            <div class="tab-content" id="rapports">
-                <h2>Rapports et Statistiques</h2>
-                
-                <div class="filter-bar">
-                    <div>
-                        <label>Période:</label>
-                        <select id="rapport-periode">
-                            <option value="jour1">Jour 1</option>
-                            <option value="jour2">Jour 2</option>
-                            <option value="jour3">Jour 3</option>
-                            <option value="total">Total Festival</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label>Type de Rapport:</label>
-                        <select id="rapport-type">
-                            <option value="consommation">Consommation par Bar</option>
-                            <option value="produit">Consommation par Produit</option>
-                            <option value="stock">Évolution des Stocks</option>
-                            <option value="commandes">Commandes et Livraisons</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary" onclick="genererRapport()">Générer</button>
-                    <button class="btn btn-success" onclick="exporterCSV()">Exporter CSV</button>
-                </div>
-                
-                <div class="chart-container" style="margin-top: 1.5rem;">
-                    <h3 id="rapport-titre">Consommation par Bar - Jour 1</h3>
-                    <div id="chart-rapport" style="height: 250px; background-color: #f5f7fa; display: flex; align-items: flex-end; justify-content: space-around; padding: 10px;">
-                        <div style="display: flex; flex-direction: column; align-items: center;">
-                            <div style="width: 100px; background-color: var(--primary); height: 150px;"></div>
-                            <div style="margin-top: 10px;">Bar Principal</div>
-                            <div>150 unités</div>
-                        </div>
-                        <div style="display: flex; flex-direction: column; align-items: center;">
-                            <div style="width: 100px; background-color: var(--primary); height: 90px;"></div>
-                            <div style="margin-top: 10px;">Bar Terrasse</div>
-                            <div>90 unités</div>
-                        </div>
-                        <div style="display: flex; flex-direction: column; align-items: center;">
-                            <div style="width: 100px; background-color: var(--primary); height: 120px;"></div>
-                            <div style="margin-top: 10px;">Bar VIP</div>
-                            <div>120 unités</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <h3 style="margin-top: 2rem;">Détails du Rapport</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Produit</th>
-                            <th>Bar Principal</th>
-                            <th>Bar Terrasse</th>
-                            <th>Bar VIP</th>
-                            <th>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody id="rapport-tbody">
-                        <tr>
-                            <td colspan="5" class="text-center">Générez un rapport pour voir les détails</td>
-                        </tr>
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <th>Total</th>
-                            <th id="rapport-total-principal">150</th>
-                            <th id="rapport-total-terrasse">90</th>
-                            <th id="rapport-total-vip">120</th>
-                            <th id="rapport-total-global">360</th>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-    </main>
-    </div>
+    const aujourd'hui = new Date();
+    const jourFestival = aujourd'hui.getDate();
     
-    <script>
-        // Variables de l'utilisateur
-        let currentUser = {
-            username: '',
-            role: '',
-            barName: '',
-            isAdmin: false
-        };
+    switch(periode) {
+        case 'jour1':
+            return items.filter(item => {
+                const itemDate = new Date(item.date);
+                return itemDate.getDate() === jourFestival - 2;
+            });
+        case 'jour2':
+            return items.filter(item => {
+                const itemDate = new Date(item.date);
+                return itemDate.getDate() === jourFestival - 1;
+            });
+        case 'jour3':
+            return items.filter(item => {
+                const itemDate = new Date(item.date);
+                return itemDate.getDate() === jourFestival;
+            });
+        default:
+            return items;
+    }
+}
+
+function getPeriodeName(periodeCode) {
+    const periodes = {
+        'jour1': 'Jour 1',
+        'jour2': 'Jour 2',
+        'jour3': 'Jour 3',
+        'total': 'Total Festival'
+    };
+    
+    return periodes[periodeCode] || periodeCode;
+}
+
+function getTypeRapportName(typeCode) {
+    const types = {
+        'consommation': 'Consommation par Bar',
+        'produit': 'Consommation par Produit',
+        'stock': 'Evolution des Stocks',
+        'commandes': 'Commandes et Livraisons'
+    };
+    
+    return types[typeCode] || typeCode;
+}
+
+function exporterCSV() {
+    // Fonctionnalité d'export CSV
+    alert('Export CSV - Fonctionnalité à venir');
+}
+
+// Fonctions de filtre
+function filtrerStock() {
+    const categorie = document.getElementById('filter-categorie').value;
+    const search = document.getElementById('filter-search').value.toLowerCase();
+    
+    let produitsFiltres = produits;
+    
+    if (categorie) {
+        produitsFiltres = produitsFiltres.filter(p => p.Catégorie === categorie);
+    }
+    
+    if (search) {
+        produitsFiltres = produitsFiltres.filter(p => p.Nom.toLowerCase().includes(search));
+    }
+    
+    const stockTbody = document.getElementById('stock-tbody');
+    
+    if (produitsFiltres.length === 0) {
+        stockTbody.innerHTML = '<tr><td colspan="9" class="text-center">Aucun produit trouvé</td></tr>';
+        return;
+    }
+    
+    let html = '';
+    produitsFiltres.forEach(produit => {
+        const total = produit.Stock_Réserve + produit.Stock_BarOne + produit.Stock_BarTwo + produit.Stock_BarThree;
+        html += `
+        <tr>
+            <td>${produit.Nom}</td>
+            <td>${getCategoryName(produit.Catégorie)}</td>
+            <td>${produit.Unité}</td>
+            <td>${produit.Stock_Réserve}</td>
+            <td>${produit.Stock_BarOne}</td>
+            <td>${produit.Stock_BarTwo}</td>
+            <td>${produit.Stock_BarThree}</td>
+            <td>${total}</td>
+            <td>
+                <button class="btn btn-primary" onclick="editProduct('${produit.id}')">Ajuster</button>
+            </td>
+        </tr>
+        `;
+    });
+    
+    stockTbody.innerHTML = html;
+}
+
+function filtrerCommandes() {
+    const bar = document.getElementById('filter-commande-bar').value;
+    const user = document.getElementById('filter-commande-user').value;
+    const statut = document.getElementById('filter-commande-statut').value;
+    
+    let commandesFiltrees = commandes;
+    
+    if (bar) {
+        commandesFiltrees = commandesFiltrees.filter(c => c.bar === bar);
+    }
+    
+    if (user) {
+        commandesFiltrees = commandesFiltrees.filter(c => c.utilisateur === user);
+    }
+    
+    if (statut) {
+        commandesFiltrees = commandesFiltrees.filter(c => c.statut === statut);
+    }
+    
+    const commandesTbody = document.getElementById('commandes-tbody');
+    
+    if (commandesFiltrees.length === 0) {
+        commandesTbody.innerHTML = '<tr><td colspan="6" class="text-center">Aucune commande trouvée</td></tr>';
+        return;
+    }
+    
+    let html = '';
+    commandesFiltrees.forEach(commande => {
+        const date = new Date(commande.date).toLocaleString('fr-FR');
+        const barName = getRoleName(commande.bar);
         
-        // Variables pour stocker les données
-        let produits = [];
-        let commandes = [];
-        let livraisons = [];
-        let retours = [];
-        let utilisateurs = [];
-        
-        // Vérifier si l'utilisateur est déjà connecté
-        function checkAuth() {
-            const savedUser = localStorage.getItem('gestionBarUser');
-            
-            if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-                showApp();
-                updateUIForRole();
-                // Charger les données depuis Firebase
-                initFirebaseListeners();
-            } else {
-                showLoginPage();
+        // Formater les produits
+        let produitsList = '';
+        commande.produits.forEach(p => {
+            const produit = produits.find(prod => prod.id === p.produit);
+            if (produit) {
+                produitsList += `${produit.Nom} (x${p.quantite}), `;
             }
+        });
+        produitsList = produitsList.slice(0, -2);
+        
+        // Définir le statut
+        let statutClass = '';
+        switch(commande.statut) {
+            case 'en-attente':
+                statutClass = 'badge-warning';
+                break;
+            case 'en-cours':
+                statutClass = 'badge-primary';
+                break;
+            case 'livree':
+                statutClass = 'badge-success';
+                break;
+            case 'annulee':
+                statutClass = 'badge-danger';
+                break;
         }
         
-        // Afficher la page de connexion
-        function showLoginPage() {
-            document.body.classList.add('login-page');
-            document.getElementById('login-page').style.display = 'block';
-            document.getElementById('app-container').style.display = 'none';
+        let actions = `<button class="btn btn-primary" onclick="voirCommande('${commande.id}')">Voir</button>`;
+        
+        if (commande.statut === 'en-attente') {
+            actions += ` <button class="btn btn-danger" onclick="annulerCommande('${commande.id}')">Annuler</button>`;
         }
         
-        // Afficher l'application
-        function showApp() {
-            document.body.classList.remove('login-page');
-            document.getElementById('login-page').style.display = 'none';
-            document.getElementById('app-container').style.display = 'block';
-        }
+        html += `
+        <tr>
+            <td>${commande.id}</td>
+            <td>${date}</td>
+            <td>${barName} (${commande.utilisateur})</td>
+            <td>${produitsList}</td>
+            <td><span class="badge ${statutClass}">${getStatusName(commande.statut)}</span></td>
+            <td>${actions}</td>
+        </tr>
+        `;
+    });
+    
+    commandesTbody.innerHTML = html;
+}
+
+// Événements au chargement du document
+document.addEventListener('DOMContentLoaded', function() {
+    // Vérifier l'authentification au chargement
+    checkAuth();
+    
+    // Gérer le formulaire de connexion
+    document.getElementById('login-form').addEventListener('submit', function(event) {
+        event.preventDefault();
         
-        // Mettre à jour l'interface en fonction du rôle
-        function updateUIForRole() {
-            // Mettre à jour le nom de l'utilisateur dans la navbar
-            document.getElementById('current-user').textContent = currentUser.username;
-            document.getElementById('current-role').textContent = getRoleName(currentUser.role);
-            
-            // Restrictions d'accès selon le rôle
-            if (!currentUser.isAdmin) {
-                // Cacher les onglets réservés à l'admin
-                const restrictedTabs = ['stock', 'livraisons', 'rapports'];
-                restrictedTabs.forEach(tabId => {
-                    const tabLink = document.querySelector(`.nav-links a[onclick*="${tabId}"]`);
-                    if (tabLink) tabLink.style.display = 'none';
-                    
-                    const tab = document.querySelector(`.tab[onclick*="${tabId}"]`);
-                    if (tab) tab.style.display = 'none';
-                });
-                
-                // Pré-sélectionner le bar dans le formulaire de commande
-                const barSelects = document.querySelectorAll('select[name="bar"]');
-                barSelects.forEach(select => {
-                    // Désactiver le select et pré-sélectionner la valeur
-                    select.disabled = true;
-                    
-                    // Trouver l'option correspondant au bar de l'utilisateur
-                    const options = select.querySelectorAll('option');
-                    options.forEach(option => {
-                        if (option.value === currentUser.role) {
-                            option.selected = true;
-                        }
-                    });
-                });
-                
-                // Afficher uniquement le tableau de bord et la section commandes
-                showTab('commandes');
-            }
-        }
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const role = document.getElementById('user-role').value;
         
-        // Initialiser les écouteurs Firebase
-        async function initFirebaseListeners() {
-            // Charger les produits
-            const produitsQuery = window.firestore.query(
-                window.firestore.collection(window.db, "produits"),
-                window.firestore.orderBy("nom")
-            );
-            
-            window.firestore.onSnapshot(produitsQuery, (snapshot) => {
-                produits = [];
-                snapshot.forEach((doc) => {
-                    produits.push({ id: doc.id, ...doc.data() });
-                });
-                updateProduitsUI();
-                updateAlertesStock();
-                updateDashboardStats();
-            });
-            
-            // Charger les commandes
-            const commandesQuery = window.firestore.query(
-                window.firestore.collection(window.db, "commandes"),
-                window.firestore.orderBy("date", "desc")
-            );
-            
-            window.firestore.onSnapshot(commandesQuery, (snapshot) => {
-                commandes = [];
-                snapshot.forEach((doc) => {
-                    commandes.push({ id: doc.id, ...doc.data() });
-                });
-                updateCommandesUI();
-                updateLivraisonsUI();
-                updateDashboardStats();
-            });
-            
-            // Charger les livraisons
-            const livraisonsQuery = window.firestore.query(
-                window.firestore.collection(window.db, "livraisons"),
-                window.firestore.orderBy("date", "desc")
-            );
-            
-            window.firestore.onSnapshot(livraisonsQuery, (snapshot) => {
-                livraisons = [];
-                snapshot.forEach((doc) => {
-                    livraisons.push({ id: doc.id, ...doc.data() });
-                });
-                updateLivraisonsHistoryUI();
-                updateDashboardStats();
-            });
-            
-            // Charger les retours
-            const retoursQuery = window.firestore.query(
-                window.firestore.collection(window.db, "retours"),
-                window.firestore.orderBy("date", "desc")
-            );
-            
-            window.firestore.onSnapshot(retoursQuery, (snapshot) => {
-                retours = [];
-                snapshot.forEach((doc) => {
-                    retours.push({ id: doc.id, ...doc.data() });
-                });
-                updateRetoursUI();
-            });
-            
-            // Charger les utilisateurs (pour les filtres)
-            const utilisateursRef = window.firestore.collection(window.db, "utilisateurs");
-            const utilisateursSnapshot = await window.firestore.getDocs(utilisateursRef);
-            utilisateurs = [];
-            utilisateursSnapshot.forEach((doc) => {
-                utilisateurs.push({ id: doc.id, ...doc.data() });
-            });
-            updateUtilisateursUI();
-        }
-        
-        // Mettre à jour l'interface des produits
-        function updateProduitsUI() {
-            // Mettre à jour la liste de produits dans le tableau
-            const stockTbody = document.getElementById('stock-tbody');
-            if (!stockTbody) return;
-            
-            if (produits.length === 0) {
-                stockTbody.innerHTML = '<tr><td colspan="9" class="text-center">Aucun produit trouvé</td></tr>';
-                return;
-            }
-            
-            let html = '';
-            produits.forEach(produit => {
-                const total = produit.Stock_Réserve + produit.Stock_BarOne + produit.Stock_BarTwo + produit.Stock_BarThree;
-                html += `
-                <tr>
-                    <td>${produit.Nom}</td>
-                    <td>${getCategoryName(produit.Catégorie)}</td>
-                    <td>${produit.Unité}</td>
-                    <td>${produit.Stock_Réserve}</td>
-                    <td>${produit.Stock_BarOne}</td>
-                    <td>${produit.Stock_BarTwo}</td>
-                    <td>${produit.Stock_BarThree}</td>
-                    <td>${total}</td>
-                    <td>
-                        <button class="btn btn-primary" onclick="editProduct('${produit.id}')">Ajuster</button>
-                    </td>
-                </tr>
-                `;
-            });
-            
-            stockTbody.innerHTML = html;
-            
-            // Mettre à jour les listes déroulantes de produits
-            const produitSelects = document.querySelectorAll('.produit-select');
-            produitSelects.forEach(select => {
-                const currentValue = select.value;
-                select.innerHTML = '<option value="">Sélectionnez un produit</option>';
-                
-                produits.forEach(produit => {
-                    const option = document.createElement('option');
-                    option.value = produit.id;
-                    option.textContent = `${produit.Nom} (${produit.Unité})`;
-                    select.appendChild(option);
-                });
-                
-                if (currentValue) {
-                    select.value = currentValue;
-                }
-            });
-        }
-        
-        // Mettre à jour les alertes de stock
-        function updateAlertesStock() {
-            const alertesTbody = document.getElementById('alertes-stock-tbody');
-            if (!alertesTbody) return;
-            
-            const produitsEnAlerte = produits.filter(produit => {
-                const total = produit.Stock_Réserve + produit.Stock_BarOne + produit.Stock_BarTwo + produit.Stock_BarThree;
-                return total <= produit.Seuil_Alerte;
-            });
-            
-            if (produitsEnAlerte.length === 0) {
-                alertesTbody.innerHTML = '<tr><td colspan="5" class="text-center">Aucune alerte de stock</td></tr>';
-                return;
-            }
-            
-            let html = '';
-            produitsEnAlerte.forEach(produit => {
-                const total = produit.Stock_Réserve + produit.Stock_BarOne + produit.Stock_BarTwo + produit.Stock_BarThree;
-                const statutClass = total <= produit.Seuil_Alerte / 2 ? 'badge-danger' : 'badge-warning';
-                const statutText = total <= produit.Seuil_Alerte / 2 ? 'CRITIQUE' : 'NIVEAU BAS';
-                
-                html += `
-                <tr>
-                    <td>${produit.Nom} (${produit.Unité})</td>
-                    <td>${total}</td>
-                    <td>${produit.Seuil_Alerte}</td>
-                    <td><span class="badge ${statutClass}">${statutText}</span></td>
-                    <td><button class="btn btn-primary" onclick="commanderProduit('${produit.id}')">Commander</button></td>
-                </tr>
-                `;
-            });
-            
-            alertesTbody.innerHTML = html;
-        }
-        
-        // Mettre à jour l'interface des commandes
-        function updateCommandesUI() {
-            const commandesTbody = document.getElementById('commandes-tbody');
-            if (!commandesTbody) return;
-            
-            if (commandes.length === 0) {
-                commandesTbody.innerHTML = '<tr><td colspan="6" class="text-center">Aucune commande trouvée</td></tr>';
-                return;
-            }
-            
-            // Filtrer les commandes si nécessaire (pour les utilisateurs non-admin)
-            let commandesAffichees = commandes;
-            if (!currentUser.isAdmin) {
-                commandesAffichees = commandes.filter(commande => commande.bar === currentUser.role);
-            }
-            
-            let html = '';
-            commandesAffichees.forEach(commande => {
-                const date = new Date(commande.date).toLocaleString('fr-FR');
-                const barName = getRoleName(commande.bar);
-                
-                // Formater les produits
-                let produitsList = '';
-                commande.produits.forEach(p => {
-                    const produit = produits.find(prod => prod.id === p.produit);
-                    if (produit) {
-                        produitsList += `${produit.Nom} (x${p.quantite}), `;
-                    }
-                });
-                produitsList = produitsList.slice(0, -2);
-                
-                // Définir le statut
-                let statutClass = '';
-                switch(commande.statut) {
-                    case 'en-attente':
-                        statutClass = 'badge-warning';
-                        break;
-                    case 'en-cours':
-                        statutClass = 'badge-primary';
-                        break;
-                    case 'livree':
-                        statutClass = 'badge-success';
-                        break;
-                    case 'annulee':
-                        statutClass = 'badge-danger';
-                        break;
-                }
-                
-                let actions = `<button class="btn btn-primary" onclick="voirCommande('${commande.id}')">Voir</button>`;
-                
-                if (commande.statut === 'en-attente') {
-                    actions += ` <button class="btn btn-danger" onclick="annulerCommande('${commande.id}')">Annuler</button>`;
-                }
-                
-                html += `
-                <tr>
-                    <td>${commande.id}</td>
-                    <td>${date}</td>
-                    <td>${barName} (${commande.utilisateur})</td>
-                    <td>${produitsList}</td>
-                    <td><span class="badge ${statutClass}">${getStatusName(commande.statut)}</span></td>
-                    <td>${actions}</td>
-                </tr>
-                `;
-            });
-            
-            commandesTbody.innerHTML = html;
-        }
-        
-        // Mettre à jour l'interface des livraisons
-        function updateLivraisonsUI() {
-            const livraisonsTbody = document.getElementById('livraisons-attente-tbody');
-            if (!livraisonsTbody) return;
-            
-            const commandesEnAttente = commandes.filter(c => c.statut === 'en-attente');
-            
-            if (commandesEnAttente.length === 0) {
-                livraisonsTbody.innerHTML = '<tr><td colspan="5" class="text-center">Aucune livraison en attente</td></tr>';
-                return;
-            }
-            
-            let html = '';
-            commandesEnAttente.forEach(commande => {
-                const date = new Date(commande.date).toLocaleString('fr-FR');
-                const barName = getRoleName(commande.bar);
-                
-                // Formater les produits
-                let produitsList = '<ul style="list-style-type: none; padding: 0; margin: 0;">';
-                commande.produits.forEach(p => {
-                    const produit = produits.find(prod => prod.id === p.produit);
-                    if (produit) {
-                        produitsList += `<li>${p.quantite}x ${produit.Nom} (${produit.Unité})</li>`;
-                    }
-                });
-                produitsList += '</ul>';
-                
-                html += `
-                <tr>
-                    <td>${commande.id}</td>
-                    <td>${barName}</td>
-                    <td>${date}</td>
-                    <td>${produitsList}</td>
-                    <td>
-                        <button class="btn btn-success" onclick="livrerCommande('${commande.id}')">Livrer</button>
-                    </td>
-                </tr>
-                `;
-            });
-            
-            livraisonsTbody.innerHTML = html;
-        }
-        
-        // Mettre à jour l'historique des livraisons
-        function updateLivraisonsHistoryUI() {
-            const livraisonsTbody = document.getElementById('livraisons-history-tbody');
-            if (!livraisonsTbody) return;
-            
-            if (livraisons.length === 0) {
-                livraisonsTbody.innerHTML = '<tr><td colspan="6" class="text-center">Aucune livraison trouvée</td></tr>';
-                return;
-            }
-            
-            let html = '';
-            livraisons.forEach(livraison => {
-                const date = new Date(livraison.date).toLocaleString('fr-FR');
-                const barName = getRoleName(livraison.bar);
-                
-                // Formater les produits
-                let produitsList = '<ul style="list-style-type: none; padding: 0; margin: 0;">';
-                livraison.produits.forEach(p => {
-                    const produit = produits.find(prod => prod.id === p.produit);
-                    if (produit) {
-                        produitsList += `<li>${p.quantite}x ${produit.Nom} (${produit.Unité})</li>`;
-                    }
-                });
-                produitsList += '</ul>';
-                
-                html += `
-                <tr>
-                    <td>${livraison.id}</td>
-                    <td>${livraison.commandeId}</td>
-                    <td>${barName}</td>
-                    <td>${date}</td>
-                    <td>${produitsList}</td>
-                    <td>
-                        <button class="btn btn-primary" onclick="voirLivraison('${livraison.id}')">Détails</button>
-                    </td>
-                </tr>
-                `;
-            });
-            
-            livraisonsTbody.innerHTML = html;
-        }
-        
-        // Mettre à jour l'interface des retours
-        function updateRetoursUI() {
-            const retoursTbody = document.getElementById('retours-tbody');
-            if (!retoursTbody) return;
-            
-            if (retours.length === 0) {
-                retoursTbody.innerHTML = '<tr><td colspan="6" class="text-center">Aucun retour trouvé</td></tr>';
-                return;
-            }
-            
-            let html = '';
-            retours.forEach(retour => {
-                const date = new Date(retour.date).toLocaleString('fr-FR');
-                const barName = getRoleName(retour.bar);
-                
-                // Formater les produits
-                let produitsList = '<ul style="list-style-type: none; padding: 0; margin: 0;">';
-                retour.produits.forEach(p => {
-                    const produit = produits.find(prod => prod.id === p.produit);
-                    if (produit) {
-                        produitsList += `<li>${p.quantite}x ${produit.Nom} - ${getRaisonRetour(p.raison)}</li>`;
-                    }
-                });
-                produitsList += '</ul>';
-                
-                html += `
-                <tr>
-                    <td>${retour.id}</td>
-                    <td>${barName}</td>
-                    <td>${date}</td>
-                    <td>${produitsList}</td>
-                    <td><span class="badge badge-success">Confirmé</span></td>
-                    <td>
-                        <button class="btn btn-primary" onclick="voirRetour('${retour.id}')">Détails</button>
-                    </td>
-                </tr>
-                `;
-            });
-            
-            retoursTbody.innerHTML = html;
-        }
-        
-        // Mettre à jour la liste des utilisateurs dans le filtre
-        function updateUtilisateursUI() {
-            const filterUser = document.getElementById('filter-commande-user');
-            if (!filterUser) return;
-            
-            // Extraire les utilisateurs uniques des commandes
-            const usersFromCommandes = [...new Set(commandes.map(c => c.utilisateur))];
-            
-            filterUser.innerHTML = '<option value="">Tous</option>';
-            
-            usersFromCommandes.forEach(user => {
-                const option = document.createElement('option');
-                option.value = user;
-                option.textContent = user;
-                filterUser.appendChild(option);
-            });
-        }
-        
-        // Mettre à jour les statistiques du tableau de bord
-        function updateDashboardStats() {
-            // Total des produits en stock
-            let totalStock = 0;
-            produits.forEach(p => {
-                totalStock += p.stockReserve + p.stockBarPrincipal + p.stockBarTerrasse + p.stockBarVIP;
-            });
-            document.getElementById('total-stock').textContent = totalStock;
-            
-            // Commandes en attente
-            const commandesAttente = commandes.filter(c => c.statut === 'en-attente').length;
-            document.getElementById('commandes-attente').textContent = commandesAttente;
-            
-            // Livraisons aujourd'hui
-            const aujourd'hui = new Date().toISOString().split('T')[0];
-            const livraisonsToday = livraisons.filter(l => l.date.startsWith(aujourd'hui)).length;
-            document.getElementById('livraisons-today').textContent = livraisonsToday;
-            
-            // Produits faibles en stock
-            const produitsEnAlerte = produits.filter(produit => {
-                const total = produit.Stock_Réserve + produit.Stock_BarOne + produit.Stock_BarTwo + produit.Stock_BarThree;
-                return total <= produit.Seuil_Alerte;
-            }).length;
-            document.getElementById('stock-faible').textContent = produitsEnAlerte;
-        }
-        
-        // Fonctions utilitaires
-        function getRoleName(roleCode) {
-            const roles = {
-                'admin': 'Responsable Bars',
-                'bar-principal': 'Bar Principal',
-                'bar-terrasse': 'Bar Terrasse',
-                'bar-vip': 'Bar VIP'
-            };
-            
-            return roles[roleCode] || roleCode;
-        }
-        
-        function getCategoryName(categoryCode) {
-            const categories = {
-                'biere': 'Bière',
-                'vin': 'Vin',
-                'cocktail': 'Cocktail',
-                'soft': 'Soft / Sans Alcool',
-                'spiritueux': 'Spiritueux'
-            };
-            
-            return categories[categoryCode] || categoryCode;
-        }
-        
-        function getStatusName(statusCode) {
-            const statuses = {
-                'en-attente': 'En attente',
-                'en-cours': 'En cours',
-                'livree': 'Livrée',
-                'annulee': 'Annulée'
-            };
-            
-            return statuses[statusCode] || statusCode;
-        }
-        
-        function getRaisonRetour(raisonCode) {
-            const raisons = {
-                'non-ouvert': 'Non ouvert',
-                'defectueux': 'Défectueux',
-                'perime': 'Périmé',
-                'erreur': 'Erreur de commande'
-            };
-            
-            return raisons[raisonCode] || raisonCode;
-        }
-        
-        // Fonction de déconnexion
-        function logout() {
-            localStorage.removeItem('gestionBarUser');
+        // Vérification simple (à remplacer par une authentification Firebase)
+        if (username && password && role) {
+            // Définir l'utilisateur courant
             currentUser = {
-                username: '',
-                role: '',
-                barName: '',
-                isAdmin: false
+                username: username,
+                role: role,
+                isAdmin: role === 'admin'
             };
-            showLoginPage();
-        }
-        
-        // Fonctions pour les onglets
-        function showTab(tabId) {
-            // Hide all tab contents
-            const tabContents = document.querySelectorAll('.tab-content');
-            tabContents.forEach(content => {
-                content.classList.remove('active');
-            });
             
-            // Remove active class from all tabs
-            const tabs = document.querySelectorAll('.tab');
-            tabs.forEach(tab => {
-                tab.classList.remove('active');
-            });
+            // Enregistrer dans le localStorage pour "persister" la session
+            localStorage.setItem('gestionBarUser', JSON.stringify(currentUser));
             
-            // Show the selected tab content
-            document.getElementById(tabId).classList.add('active');
+            // Afficher l'application
+            showApp();
             
-            // Find and activate the corresponding tab
-            const tabLinks = document.querySelectorAll('.tabs .tab');
-            tabLinks.forEach(tab => {
-                if (tab.getAttribute('onclick').includes(tabId)) {
-                    tab.classList.add('active');
-                }
-            });
-        }
-        
-        // Fonctions pour les produits
-        function showAddProductForm() {
-            document.getElementById('product-form-title').textContent = 'Ajouter un produit';
-            document.getElementById('product-id').value = '';
-            document.getElementById('product-name').value = '';
-            document.getElementById('product-category').value = 'biere';
-            document.getElementById('product-unit').value = '';
-            document.getElementById('product-reserve').value = 0;
-            document.getElementById('product-bar-principal').value = 0;
-            document.getElementById('product-bar-terrasse').value = 0;
-            document.getElementById('product-bar-vip').value = 0;
-            document.getElementById('product-seuil').value = 5;
-            document.getElementById('product-form').style.display = 'block';
-        }
-        
-        function hideAddProductForm() {
-            document.getElementById('product-form').style.display = 'none';
-        }
-        
-        async function editProduct(productId) {
-            const produit = produits.find(p => p.id === productId);
-            if (!produit) return;
+            // Initialiser les données
+            initFirebaseListeners();
             
-            document.getElementById('product-form-
+            // Mettre à jour l'interface
+            updateUIForRole();
+        } else {
+            document.getElementById('login-error').style.display = 'block';
+        }
+    });
+    
+    // Gérer la soumission du formulaire de produit
+    const addProductForm = document.getElementById('add-product-form');
+    if (addProductForm) {
+        addProductForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            saveProduct(this);
+        });
+    }
+});
