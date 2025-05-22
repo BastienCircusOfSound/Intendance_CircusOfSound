@@ -76,6 +76,8 @@
 
         .content {
             padding: 40px;
+            max-height: 70vh;
+            overflow-y: auto;
         }
 
         .section {
@@ -138,14 +140,26 @@
             color: white;
         }
 
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
         .btn-success {
             background: #28a745;
             color: white;
         }
 
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+
         .btn-danger {
             background: #dc3545;
             color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
         }
 
         .table {
@@ -224,7 +238,52 @@
         }
 
         .hidden {
-            display: none;
+            display: none !important;
+        }
+
+        /* Modal corrigé */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.hidden {
+            display: none !important;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .modal-close:hover {
+            color: #333;
         }
 
         @media (max-width: 768px) {
@@ -237,6 +296,11 @@
             }
             
             .content {
+                padding: 20px;
+            }
+
+            .modal-content {
+                margin: 10px;
                 padding: 20px;
             }
         }
@@ -332,13 +396,13 @@
                 <div class="grid">
                     <div class="card">
                         <h3>📦 Produits en stock</h3>
-                        <div style="font-size: 2em; color: #007bff; font-weight: bold;" id="total-produits">2</div>
+                        <div style="font-size: 2em; color: #007bff; font-weight: bold;" id="total-produits">0</div>
                         <p>produits différents</p>
                     </div>
                     
                     <div class="card">
                         <h3>📋 Commandes en attente</h3>
-                        <div style="font-size: 2em; color: #ffc107; font-weight: bold;" id="total-commandes">1</div>
+                        <div style="font-size: 2em; color: #ffc107; font-weight: bold;" id="total-commandes">0</div>
                         <p>commandes à traiter</p>
                     </div>
                     
@@ -372,31 +436,30 @@
                     <button class="btn btn-secondary" onclick="loadSampleData()">🎲 Charger données d'exemple</button>
                 </div>
                 
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Produit</th>
-                            <th>Catégorie</th>
-                            <th>Unité</th>
-                            <th>Réserve</th>
-                            <th>Bar Principal</th>
-                            <th>Bar Terrasse</th>
-                            <th>Bar VIP</th>
-                            <th>Total</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="stock-tbody">
-                        <tr>
-                            <td colspan="9" class="text-center">
-                                <div class="loading">
-                                    <div class="spinner"></div>
-                                    <span style="margin-left: 10px;">Chargement des produits...</span>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div style="overflow-x: auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Produit</th>
+                                <th>Catégorie</th>
+                                <th>Unité</th>
+                                <th>Réserve</th>
+                                <th>Bar Principal</th>
+                                <th>Bar Terrasse</th>
+                                <th>Bar VIP</th>
+                                <th>Total</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stock-tbody">
+                            <tr>
+                                <td colspan="9" class="text-center">
+                                    Aucun produit. Cliquez sur "🎲 Charger données d'exemple" pour commencer !
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Section Commandes -->
@@ -441,24 +504,26 @@
 
                 <div style="margin-top: 30px;">
                     <h3>Commandes Existantes</h3>
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Date</th>
-                                <th>Bar</th>
-                                <th>Produit</th>
-                                <th>Quantité</th>
-                                <th>Statut</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="commandes-tbody">
-                            <tr>
-                                <td colspan="7" class="text-center">Aucune commande</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div style="overflow-x: auto;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Date</th>
+                                    <th>Bar</th>
+                                    <th>Produit</th>
+                                    <th>Quantité</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="commandes-tbody">
+                                <tr>
+                                    <td colspan="7" class="text-center">Aucune commande</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -466,30 +531,33 @@
             <div id="livraisons-section" class="section">
                 <h2>🚚 Gestion des Livraisons</h2>
                 
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Date</th>
-                            <th>Commande</th>
-                            <th>Bar</th>
-                            <th>Livreur</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="livraisons-tbody">
-                        <tr>
-                            <td colspan="6" class="text-center">Aucune livraison</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div style="overflow-x: auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Date</th>
+                                <th>Commande</th>
+                                <th>Bar</th>
+                                <th>Livreur</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="livraisons-tbody">
+                            <tr>
+                                <td colspan="6" class="text-center">Aucune livraison</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Modal d'ajout de produit -->
-    <div id="product-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; justify-content: center; align-items: center;">
-        <div class="card" style="max-width: 500px; width: 90%;">
+    <div id="product-modal" class="modal hidden">
+        <div class="modal-content">
+            <button type="button" class="modal-close" onclick="closeProductModal()">&times;</button>
             <h3>➕ Ajouter un Produit</h3>
             <form id="product-form">
                 <div class="form-group">
@@ -603,7 +671,7 @@
             document.getElementById('app-container').style.display = 'block';
             document.getElementById('user-welcome').textContent = currentUser.username;
             
-            // Charger les données d'exemple
+            // Charger les données d'exemple automatiquement
             loadSampleData();
         }
 
@@ -636,21 +704,27 @@
             updateStockTable();
             updateProductSelects();
             updateDashboard();
+            
+            // Message de confirmation
+            setTimeout(() => {
+                alert('✅ Données d\'exemple chargées avec succès !');
+            }, 100);
         }
 
         function updateStockTable() {
             const tbody = document.getElementById('stock-tbody');
             
             if (produits.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="text-center">Aucun produit. Cliquez sur "Charger données d\'exemple" ou "Ajouter Produit"</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center">Aucun produit. Cliquez sur "🎲 Charger données d\'exemple" pour commencer !</td></tr>';
                 return;
             }
             
             let html = '';
             produits.forEach(produit => {
                 const total = produit.reserve + produit.bar1 + produit.bar2 + produit.bar3;
+                const alertClass = total < 5 ? 'style="background-color: #ffe6e6;"' : '';
                 html += `
-                <tr>
+                <tr ${alertClass}>
                     <td>${produit.nom}</td>
                     <td>${produit.categorie}</td>
                     <td>${produit.unite}</td>
@@ -770,6 +844,9 @@
                     'bar-vip': '⭐ Bar VIP'
                 };
                 
+                const statutBadge = commande.statut === 'en-attente' ? 'badge-warning' : 
+                                   commande.statut === 'livree' ? 'badge-success' : 'badge-primary';
+                
                 html += `
                 <tr>
                     <td>${commande.id}</td>
@@ -777,9 +854,12 @@
                     <td>${barNames[commande.bar]}</td>
                     <td>${commande.produit.nom}</td>
                     <td>${commande.quantite}</td>
-                    <td><span class="badge badge-warning">${commande.statut}</span></td>
+                    <td><span class="badge ${statutBadge}">${commande.statut}</span></td>
                     <td>
-                        <button class="btn btn-success" onclick="livrerCommande('${commande.id}')">🚚 Livrer</button>
+                        ${commande.statut === 'en-attente' ? 
+                            `<button class="btn btn-success" onclick="livrerCommande('${commande.id}')">🚚 Livrer</button>` : 
+                            `<button class="btn btn-primary" onclick="voirCommande('${commande.id}')">👁️ Voir</button>`
+                        }
                     </td>
                 </tr>
                 `;
@@ -792,14 +872,16 @@
             const commande = commandes.find(c => c.id === commandeId);
             if (!commande) return;
             
-            if (confirm(`Livrer la commande ${commandeId} ?`)) {
+            if (confirm(`Livrer la commande ${commandeId} ?\n\nCela va transférer ${commande.quantite} ${commande.produit.unite} de ${commande.produit.nom} vers le ${commande.bar.replace('-', ' ')}.`)) {
                 // Créer la livraison
                 const livraison = {
                     id: 'LIV-' + Date.now(),
                     date: new Date(),
                     commandeId: commandeId,
                     bar: commande.bar,
-                    livreur: currentUser.username
+                    livreur: currentUser.username,
+                    produit: commande.produit,
+                    quantite: commande.quantite
                 };
                 
                 livraisons.push(livraison);
@@ -808,27 +890,53 @@
                 // Mettre à jour les stocks
                 const produit = produits.find(p => p.id === commande.produit.id);
                 if (produit) {
-                    produit.reserve = Math.max(0, produit.reserve - commande.quantite);
-                    
-                    switch(commande.bar) {
-                        case 'bar-principal':
-                            produit.bar1 += commande.quantite;
-                            break;
-                        case 'bar-terrasse':
-                            produit.bar2 += commande.quantite;
-                            break;
-                        case 'bar-vip':
-                            produit.bar3 += commande.quantite;
-                            break;
+                    // Vérifier si assez de stock en réserve
+                    if (produit.reserve >= commande.quantite) {
+                        produit.reserve = Math.max(0, produit.reserve - commande.quantite);
+                        
+                        switch(commande.bar) {
+                            case 'bar-principal':
+                                produit.bar1 += commande.quantite;
+                                break;
+                            case 'bar-terrasse':
+                                produit.bar2 += commande.quantite;
+                                break;
+                            case 'bar-vip':
+                                produit.bar3 += commande.quantite;
+                                break;
+                        }
+                        
+                        updateCommandesTable();
+                        updateStockTable();
+                        updateLivraisonsTable();
+                        updateDashboard();
+                        
+                        alert('✅ Commande livrée avec succès !\n\nStock mis à jour automatiquement.');
+                    } else {
+                        alert('❌ Stock insuffisant en réserve !\n\nStock disponible: ' + produit.reserve + '\nQuantité demandée: ' + commande.quantite);
                     }
                 }
+            }
+        }
+
+        function voirCommande(commandeId) {
+            const commande = commandes.find(c => c.id === commandeId);
+            if (commande) {
+                const barNames = {
+                    'bar-principal': 'Bar Principal',
+                    'bar-terrasse': 'Bar Terrasse',
+                    'bar-vip': 'Bar VIP'
+                };
                 
-                updateCommandesTable();
-                updateStockTable();
-                updateLivraisonsTable();
-                updateDashboard();
+                alert(`📋 Commande ${commande.id}
                 
-                alert('✅ Commande livrée avec succès !');
+📅 Date: ${commande.date.toLocaleString('fr-FR')}
+🏪 Bar: ${barNames[commande.bar]}
+📦 Produit: ${commande.produit.nom} (${commande.produit.unite})
+🔢 Quantité: ${commande.quantite}
+👤 Utilisateur: ${commande.utilisateur}
+📊 Statut: ${commande.statut}
+📝 Notes: ${commande.notes || 'Aucune'}`);
             }
         }
 
@@ -868,8 +976,25 @@
         function voirLivraison(livraisonId) {
             const livraison = livraisons.find(l => l.id === livraisonId);
             if (livraison) {
-                alert(`Livraison ${livraison.id}\nDate: ${livraison.date.toLocaleString('fr-FR')}\nLivreur: ${livraison.livreur}`);
+                const barNames = {
+                    'bar-principal': 'Bar Principal',
+                    'bar-terrasse': 'Bar Terrasse',
+                    'bar-vip': 'Bar VIP'
+                };
+                
+                alert(`🚚 Livraison ${livraison.id}
+                
+📅 Date: ${livraison.date.toLocaleString('fr-FR')}
+📋 Commande: ${livraison.commandeId}
+🏪 Bar: ${barNames[livraison.bar]}
+📦 Produit: ${livraison.produit ? livraison.produit.nom : 'N/A'} 
+🔢 Quantité: ${livraison.quantite || 'N/A'}
+👤 Livreur: ${livraison.livreur}`);
             }
+        }
+
+        function editProduct(productId) {
+            alert('🔧 Fonction de modification à venir !\n\nPour l\'instant, vous pouvez seulement ajouter de nouveaux produits.');
         }
 
         // Initialisation
@@ -884,6 +1009,14 @@
                 }
             }
         }
+
+        // Gestionnaire de clic en dehors du modal pour le fermer
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('product-modal');
+            if (event.target === modal) {
+                closeProductModal();
+            }
+        });
 
         // Événements
         document.addEventListener('DOMContentLoaded', function() {
